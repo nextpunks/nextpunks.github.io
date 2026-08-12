@@ -3,184 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NFT Gallery (1 - 7000)</title>
+    <!-- Referrer Policy সেট করা হলো যাতে CDN থেকে ইমেজ ব্লক না করে -->
+    <meta name="referrer" content="no-referrer">
+    <title>Direct NFT Image Loader (1 - 7000)</title>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, sans-serif;
         }
 
         body {
             background-color: #0f172a;
-            color: #f8fafc;
+            color: #ffffff;
             padding: 20px;
         }
 
         header {
             text-align: center;
-            margin-bottom: 30px;
-            padding: 20px 0;
+            margin-bottom: 25px;
         }
 
         h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
             color: #38bdf8;
+            margin-bottom: 10px;
         }
 
-        .controls {
+        .pagination-controls {
             display: flex;
             justify-content: center;
-            gap: 10px;
+            align-items: center;
+            gap: 15px;
             margin-top: 15px;
+            flex-wrap: wrap;
         }
 
-        .controls input {
-            padding: 10px 15px;
-            border-radius: 8px;
-            border: 1px solid #334155;
-            background-color: #1e293b;
-            color: #fff;
-            outline: none;
-            width: 200px;
-        }
-
-        .controls button {
-            padding: 10px 20px;
-            border-radius: 8px;
-            border: none;
+        button {
+            padding: 10px 18px;
             background-color: #0284c7;
             color: white;
+            border: none;
+            border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
         }
 
-        .controls button:hover {
-            background-color: #0369a1;
+        button:disabled {
+            background-color: #334155;
+            cursor: not-allowed;
+        }
+
+        input {
+            padding: 9px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background-color: #1e293b;
+            color: white;
+            width: 100px;
+            text-align: center;
         }
 
         .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
             max-width: 1400px;
-            margin: 0 auto;
+            margin: 20px auto;
         }
 
-        .nft-card {
+        .card {
             background-color: #1e293b;
-            border-radius: 12px;
-            overflow: hidden;
+            border-radius: 8px;
             border: 1px solid #334155;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s, box-shadow 0.2s;
+            padding: 10px;
+            text-align: center;
             display: flex;
             flex-direction: column;
-            position: relative;
+            gap: 10px;
         }
 
-        .nft-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(56, 189, 248, 0.2);
-        }
-
-        .image-container {
+        .img-wrapper {
             width: 100%;
             aspect-ratio: 1 / 1;
             background-color: #0f172a;
+            border-radius: 6px;
+            overflow: hidden;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .nft-image {
+        img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
         }
 
-        .loader {
-            position: absolute;
-            border: 3px solid #334155;
-            border-top: 3px solid #38bdf8;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .error-overlay {
-            position: absolute;
-            inset: 0;
-            background-color: rgba(15, 23, 42, 0.9);
-            display: flex;
+        .error-box {
+            display: none;
             flex-direction: column;
+            gap: 8px;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            padding: 10px;
-            text-align: center;
-        }
-
-        .error-overlay span {
-            color: #ef4444;
-            font-size: 0.85rem;
-        }
-
-        .refresh-btn {
-            background-color: #ef4444;
-            color: white;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-
-        .refresh-btn:hover {
-            background-color: #dc2626;
-        }
-
-        .card-info {
-            padding: 12px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            width: 100%;
+            height: 100%;
             background-color: #1e293b;
+            color: #f87171;
+            font-size: 13px;
+            padding: 10px;
         }
 
-        .nft-title {
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: #f1f5f9;
+        .retry-btn {
+            background-color: #ef4444;
+            padding: 5px 10px;
+            font-size: 12px;
         }
 
-        .nft-id {
-            color: #94a3b8;
-            font-size: 0.85rem;
+        .direct-link {
+            font-size: 11px;
+            color: #38bdf8;
+            text-decoration: underline;
+            word-break: break-all;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>NFT Collection Gallery</h1>
-        <p>Total Items: 7,000</p>
-        <div class="controls">
-            <input type="number" id="search-id" min="1" max="7000" placeholder="NFT ID (1-7000)">
-            <button onclick="scrollToNFT()">খুঁজুন</button>
+        <h1>NFT Direct Viewer</h1>
+        <p>মোট আইটেম: ৭,০০০টি (প্রতি পেজে ১০০টি করে দেখানো হচ্ছে)</p>
+
+        <div class="pagination-controls">
+            <button id="prev-btn" onclick="changePage(-1)">← আগের ১০০টি</button>
+            <span>পেজ: <strong id="page-num">১</strong> / ৭০</span>
+            <button id="next-btn" onclick="changePage(1)">পরের ১০০টি →</button>
+            
+            <span style="margin-left: 15px;">সরাসরি যান:</span>
+            <input type="number" id="jump-id" min="1" max="7000" placeholder="ID (1-7000)">
+            <button onclick="jumpToID()">Go</button>
         </div>
     </header>
 
@@ -188,104 +150,95 @@
 
     <script>
         const baseUrl = "https://2w4vanuecnlrmjhaorxhfn2c4bqarywouhmovqtqvpaqymp6lfaa.mainnet-1.datasprite-cdn.com/FPHjSMETs7eqAtoftL5b3zg4s9X8XDPSC1fe19dGARgs/";
-        const totalNFTs = 7000;
-        const gallery = document.getElementById('gallery');
+        const itemsPerPage = 100;
+        let currentPage = 1;
 
-        // কার্ড তৈরি এবং DOM-এ যুক্ত করার ফাংশন
-        function createNFTCard(id) {
-            const card = document.createElement('div');
-            card.className = 'nft-card';
-            card.id = `nft-${id}`;
+        function loadPage(page) {
+            currentPage = page;
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = ''; // আগেরগুলো পরিষ্কার করা
 
-            const imgUrl = `${baseUrl}${id}.jpeg`;
+            const startID = (page - 1) * itemsPerPage + 1;
+            const endID = Math.min(page * itemsPerPage, 7000);
 
-            card.innerHTML = `
-                <div class="image-container">
-                    <div class="loader" id="loader-${id}"></div>
-                    <img 
-                        class="nft-image" 
-                        loading="lazy" 
-                        src="${imgUrl}" 
-                        alt="NFT #${id}"
-                        onload="handleImageLoad(${id})"
-                        onerror="handleImageError(${id})"
-                        style="display: none;"
-                    >
-                    <div class="error-overlay" id="error-${id}" style="display: none;">
-                        <span>লোড হতে সমস্যা হয়েছে</span>
-                        <button class="refresh-btn" onclick="retryLoad(${id})">🔄 রিফ্রেশ</button>
+            document.getElementById('page-num').innerText = page;
+            document.getElementById('prev-btn').disabled = (page === 1);
+            document.getElementById('next-btn').disabled = (page === 70);
+
+            for (let id = startID; id <= endID; id++) {
+                const imgUrl = `${baseUrl}${id}.jpeg`;
+
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.id = `card-${id}`;
+
+                card.innerHTML = `
+                    <div class="img-wrapper">
+                        <img 
+                            src="${imgUrl}" 
+                            alt="NFT #${id}"
+                            onerror="showError(${id})"
+                        >
+                        <div class="error-box" id="error-${id}">
+                            <span>ছবি লোড হয়নি</span>
+                            <button class="retry-btn" onclick="reloadSingleImg(${id})">🔄 রিফ্রেশ</button>
+                            <a href="${imgUrl}" target="_blank" class="direct-link">সরাসরি লিংক খুলুন</a>
+                        </div>
                     </div>
-                </div>
-                <div class="card-info">
-                    <span class="nft-title">Item #${id}</span>
-                    <span class="nft-id">#${id}</span>
-                </div>
-            `;
+                    <div>
+                        <strong>Item #${id}</strong>
+                    </div>
+                `;
 
-            return card;
+                gallery.appendChild(card);
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // ছবি সফলভাবে লোড হলে
-        function handleImageLoad(id) {
-            const loader = document.getElementById(`loader-${id}`);
-            const img = document.querySelector(`#nft-${id} .nft-image`);
-            if (loader) loader.style.display = 'none';
-            if (img) img.style.display = 'block';
+        function showError(id) {
+            const card = document.getElementById(`card-${id}`);
+            if (card) {
+                const img = card.querySelector('img');
+                const errorBox = card.querySelector('.error-box');
+                if (img) img.style.display = 'none';
+                if (errorBox) errorBox.style.display = 'flex';
+            }
         }
 
-        // ছবি লোড না হলে এরর হ্যান্ডলিং
-        function handleImageError(id) {
-            const loader = document.getElementById(`loader-${id}`);
-            const errorOverlay = document.getElementById(`error-${id}`);
-            const img = document.querySelector(`#nft-${id} .nft-image`);
-            
-            if (loader) loader.style.display = 'none';
-            if (img) img.style.display = 'none';
-            if (errorOverlay) errorOverlay.style.display = 'flex';
+        function reloadSingleImg(id) {
+            const card = document.getElementById(`card-${id}`);
+            if (card) {
+                const img = card.querySelector('img');
+                const errorBox = card.querySelector('.error-box');
+                
+                errorBox.style.display = 'none';
+                img.style.display = 'block';
+
+                // Bypass cache with unique URL
+                img.src = `${baseUrl}${id}.jpeg?t=${new Date().getTime()}`;
+            }
         }
 
-        // একক কার্ড রিফ্রেশ করার ফাংশন
-        function retryLoad(id) {
-            const loader = document.getElementById(`loader-${id}`);
-            const errorOverlay = document.getElementById(`error-${id}`);
-            const img = document.querySelector(`#nft-${id} .nft-image`);
-
-            if (errorOverlay) errorOverlay.style.display = 'none';
-            if (loader) loader.style.display = 'block';
-
-            // Cache bypass করে নতুন করে ইমেজ ফেচ করার নিয়ম
-            const timestamp = new Date().getTime();
-            img.src = `${baseUrl}${id}.jpeg?reload=${timestamp}`;
+        function changePage(step) {
+            const newPage = currentPage + step;
+            if (newPage >= 1 && newPage <= 70) {
+                loadPage(newPage);
+            }
         }
 
-        // নির্দিষ্ট NFT-তে স্ক্রোল করা
-        function scrollToNFT() {
-            const id = document.getElementById('search-id').value;
-            if (id >= 1 && id <= totalNFTs) {
-                const element = document.getElementById(`nft-${id}`);
-                if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    element.style.borderColor = '#38bdf8';
-                    setTimeout(() => {
-                        element.style.borderColor = '#334155';
-                    }, 3000);
-                }
+        function jumpToID() {
+            const id = parseInt(document.getElementById('jump-id').value);
+            if (id >= 1 && id <= 7000) {
+                const targetPage = Math.ceil(id / itemsPerPage);
+                loadPage(targetPage);
             } else {
-                alert('১ থেকে ৭০০০ এর মধ্যে যেকোনো সংখ্যা দিন।');
+                alert('১ থেকে ৭০০০ এর মধ্যে আইডি লিখুন।');
             }
         }
 
-        // ১ থেকে ৭০০০ পর্যন্ত সব কার্ড জেনারেট করা
-        function initGallery() {
-            const fragment = document.createDocumentFragment();
-            for (let i = 1; i <= totalNFTs; i++) {
-                fragment.appendChild(createNFTCard(i));
-            }
-            gallery.appendChild(fragment);
-        }
-
-        // গ্যালারি লোড শুরু
-        initGallery();
+        // প্রথম পেজ লোড
+        loadPage(1);
     </script>
 </body>
 </html>
