@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HyperNova Squad - NFT গ্যালারি</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0b0e17;
+            color: #e5e7eb;
+            padding: 20px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin: 20px 0 10px;
+            color: #f0b90b;
+        }
+        .subtitle {
+            text-align: center;
+            color: #9ca3af;
+            margin-bottom: 30px;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            background: #1e293b;
+            color: #e5e7eb;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid #334155;
+        }
+        .btn:hover { background: #2d3b52; border-color: #f0b90b; }
+        .btn-primary {
+            background: #f0b90b;
+            color: #0b0e17;
+            font-weight: bold;
+        }
+        .btn-primary:hover { background: #d4a30a; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            background: #131a26;
+            padding: 15px 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            border: 1px solid #1e293b;
+        }
+        .stat-item { text-align: center; }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #f0b90b;
+        }
+        .stat-label { color: #9ca3af; font-size: 0.9rem; }
+
+        .nft-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .nft-card {
+            background: #131a26;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .nft-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border-color: #f0b90b;
+        }
+        .nft-image-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background: #0b0e17;
+            overflow: hidden;
+        }
+        .nft-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .nft-image.error {
+            opacity: 0.3;
+        }
+        .refresh-btn {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(240, 185, 11, 0.9);
+            color: #0b0e17;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+            z-index: 5;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        .refresh-btn:hover {
+            transform: scale(1.1);
+            background: #f0b90b;
+        }
+        .refresh-btn.show {
+            display: flex;
+        }
+        .nft-info {
+            padding: 12px 15px;
+            flex-grow: 1;
+        }
+        .nft-name {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+            color: #f8f9fa;
+        }
+        .nft-id {
+            color: #9ca3af;
+            font-size: 0.8rem;
+        }
+        .nft-owner {
+            font-size: 0.7rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .loading-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            background: #1a2233;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        .spinner {
+            border: 3px solid #1e293b;
+            border-top: 3px solid #f0b90b;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .page-btn {
+            background: #1e293b;
+            color: #e5e7eb;
+            border: 1px solid #334155;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .page-btn:hover:not(:disabled) { background: #2d3b52; }
+        .page-btn.active {
+            background: #f0b90b;
+            color: #0b0e17;
+            border-color: #f0b90b;
+        }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .message {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid;
+        }
+        .message-info { background: #1e3a8a; color: #93c5fd; border-color: #3b82f6; }
+        .message-success { background: #14532d; color: #86efac; border-color: #22c55e; }
+        .message-error { background: #7f1d1d; color: #fecaca; border-color: #ef4444; }
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .stats { gap: 15px; }
+            .nft-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+            .refresh-btn { width: 30px; height: 30px; font-size: 1rem; bottom: 8px; right: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 HyperNova Squad</h1>
+        <p class="subtitle">Aptos NFT গ্যালারি - ৭,০০০টি уникальный NFT</p>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="loadDataBtn">📥 NFT ডেটা লোড করুন</button>
+            <button class="btn" id="clearDataBtn">🗑️ ক্লিয়ার করুন</button>
+        </div>
+
+        <div id="statsContainer" class="stats" style="display: none;">
+            <div class="stat-item">
+                <div class="stat-value" id="totalSupply">0</div>
+                <div class="stat-label">মোট সাপ্লাই</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="loadedCount">0</div>
+                <div class="stat-label">লোড হয়েছে</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="errorCount">0</div>
+                <div class="stat-label">লোড হয়নি</div>
+            </div>
+        </div>
+
+        <div id="messageArea"></div>
+        <div id="nftGrid" class="nft-grid"></div>
+        <div id="paginationArea" class="pagination"></div>
+    </div>
+
+    <script>
+        // ============= কনফিগারেশন =============
+        const COLLECTION_ID = '0xef50cde1a5ffaea0cd0671a0f17de69ad6172eaaa673c8136d0a8e319ca9e946';
+        const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+        const API_URL = PROXY_URL + encodeURIComponent('https://api.mainnet-staging.aptoslabs.com/nft-aggregator/v1/graphql');
+        const PAGE_SIZE = 50;
+
+        let allTokens = [];
+        let currentPage = 1;
+        let isLoading = false;
+        let imageErrorCount = 0;
+
+        // DOM এলিমেন্ট
+        const grid = document.getElementById('nftGrid');
+        const statsContainer = document.getElementById('statsContainer');
+        const totalSupplyEl = document.getElementById('totalSupply');
+        const loadedCountEl = document.getElementById('loadedCount');
+        const errorCountEl = document.getElementById('errorCount');
+        const messageArea = document.getElementById('messageArea');
+        const paginationArea = document.getElementById('paginationArea');
+        const loadBtn = document.getElementById('loadDataBtn');
+        const clearBtn = document.getElementById('clearDataBtn');
+
+        // ============= মেসেজ ফাংশন =============
+        function showMessage(text, type = 'info') {
+            const classes = {
+                info: 'message-info',
+                success: 'message-success',
+                error: 'message-error'
+            };
+            messageArea.innerHTML = `<div class="message ${classes[type] || 'message-info'}">${text}</div>`;
+        }
+
+        // ============= GraphQL কোয়েরি =============
+        function buildQuery(cursor) {
+            let afterClause = cursor ? `, after: "${cursor}"` : '';
+            return `
+            query GetCollectionTokens {
+              aptos {
+                collection_v2(
+                  where: {collection_id: {_eq: "${COLLECTION_ID}"}}
+                ) {
+                  collection_name
+                  description
+                  total_supply
+                  token_metadata_v2(first: ${PAGE_SIZE}${afterClause}) {
+                    pageInfo {
+                      hasNextPage
+                      endCursor
+                    }
+                    token_name
+                    token_uri
+                    description
+                    token_id
+                    creator_address
+                    current_token_ownership_v2 {
+                      owner_address
+                    }
+                  }
+                }
+              }
+            }
+          `;
+        }
+
+        // ============= API কল =============
+        async function fetchTokens(cursor = null) {
+            const query = buildQuery(cursor);
+            const payload = { query };
+            const urlWithParams = API_URL + '&' + new URLSearchParams({
+                method: 'POST',
+                headers: JSON.stringify({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify(payload)
+            }).toString();
+
+            try {
+                const response = await fetch(urlWithParams);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const result = await response.json();
+                let data = result;
+                if (result.contents) data = JSON.parse(result.contents);
+
+                if (data.errors) throw new Error(data.errors[0].message);
+
+                const collection = data.data?.aptos?.collection_v2?.[0];
+                if (!collection) throw new Error('সংগ্রহ খুঁজে পাওয়া যায়নি');
+
+                const tokens = collection.token_metadata_v2 || [];
+                const pageInfo = tokens.pageInfo || {};
+
+                return {
+                    tokens: tokens.filter(t => t.token_name),
+                    pageInfo: {
+                        hasNextPage: pageInfo.hasNextPage || false,
+                        endCursor: pageInfo.endCursor || null
+                    },
+                    totalSupply: collection.total_supply || 0,
+                };
+            } catch (error) {
+                console.error('API ত্রুটি:', error);
+                throw error;
+            }
+        }
+
+        // ============= ছবির URL তৈরি =============
+        function getImageUrl(token) {
+            // প্রথমে token_uri থেকে চেষ্টা
+            if (token.token_uri) {
+                let uri = token.token_uri;
+                if (uri.startsWith('ipfs://')) {
+                    uri = uri.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                }
+                return uri;
+            }
+            
+            // না হলে ডেটাস্প্রাইট প্যাটার্ন ব্যবহার (যদি token_id থেকে নাম্বার পাওয়া যায়)
+            const tokenId = token.token_id || token.token_name?.split('#')[1];
+            if (tokenId) {
+                const num = parseInt(tokenId);
+                if (num >= 1 && num <= 7000) {
+                    return `https://2w4vanuecnlrmjhaorxhfn2c4bqarywouhmovqtqvpaqymp6lfaa.mainnet-1.datasprite-cdn.com/FPHjSMETs7eqAtoftL5b3zg4s9X8XDPSC1fe19dGARgs/${num}.jpeg`;
+                }
+            }
+            return null;
+        }
+
+        // ============= সব টোকেন লোড =============
+        async function loadAllTokens() {
+            if (isLoading) return;
+            isLoading = true;
+            loadBtn.disabled = true;
+            imageErrorCount = 0;
+            showMessage('⏳ NFT ডেটা লোড হচ্ছে... দয়া করে অপেক্ষা করুন।', 'info');
+
+            allTokens = [];
+            let cursor = null;
+            let hasNext = true;
+            let totalLoaded = 0;
+
+            try {
+                while (hasNext) {
+                    const data = await fetchTokens(cursor);
+                    const newTokens = data.tokens;
+                    allTokens = allTokens.concat(newTokens);
+                    totalLoaded += newTokens.length;
+
+                    loadedCountEl.textContent = totalLoaded;
+                    totalSupplyEl.textContent = data.totalSupply || '?';
+
+                    hasNext = data.pageInfo.hasNextPage;
+                    cursor = data.pageInfo.endCursor;
+
+                    if (hasNext) await new Promise(resolve => setTimeout(resolve, 400));
+                    if (totalLoaded >= 7000) break;
+                }
+
+                showMessage(`✅ মোট ${allTokens.length} টি NFT সফলভাবে লোড হয়েছে!`, 'success');
+                statsContainer.style.display = 'flex';
+                loadedCountEl.textContent = allTokens.length;
+                errorCountEl.textContent = '0';
+
+                currentPage = 1;
+                renderPage(currentPage);
+
+            } catch (error) {
+                let errorMsg = error.message;
+                if (errorMsg.includes('Failed to fetch')) {
+                    errorMsg = 'নেটওয়ার্ক সমস্যা। ইন্টারনেট কানেকশন চেক করে আবার চেষ্টা করুন।';
+                }
+                showMessage(`❌ ত্রুটি: ${errorMsg}`, 'error');
+                console.error(error);
+            } finally {
+                isLoading = false;
+                loadBtn.disabled = false;
+            }
+        }
+
+        // ============= একটি ছবি রিফ্রেশ =============
+        function refreshImage(tokenId) {
+            const imgElement = document.querySelector(`img[data-token-id="${tokenId}"]`);
+            const refreshBtn = document.querySelector(`button[data-refresh-id="${tokenId}"]`);
+            if (imgElement) {
+                // ছবি রিফ্রেশ
+                const currentSrc = imgElement.src;
+                imgElement.src = '';
+                imgElement.classList.remove('error');
+                imgElement.src = currentSrc + (currentSrc.includes('?') ? '&' : '?') + 't=' + Date.now();
+                
+                // বাটন লুকাও
+                if (refreshBtn) {
+                    refreshBtn.classList.remove('show');
+                }
+                
+                // কাউন্ট আপডেট (যদি সফল হয়, এরর কাউন্ট কমবে)
+                // ইমেজ onload ইভেন্টে এরর কাউন্ট কমাবো
+            }
+        }
+
+        // ============= পেজ রেন্ডার =============
+        function renderPage(page) {
+            const start = (page - 1) * PAGE_SIZE;
+            const end = start + PAGE_SIZE;
+            const pageTokens = allTokens.slice(start, end);
+
+            if (pageTokens.length === 0) {
+                grid.innerHTML = `<div class="loading">কোন NFT পাওয়া যায়নি</div>`;
+                return;
+            }
+
+            let html = '';
+            pageTokens.forEach((token, index) => {
+                const name = token.token_name || 'Unnamed';
+                const id = token.token_id || `#${start + index + 1}`;
+                const owner = token.current_token_ownership_v2?.[0]?.owner_address || 'অজানা';
+                const imageUrl = getImageUrl(token);
+                const uniqueId = `img-${Date.now()}-${index}`;
+
+                html += `
+                  <div class="nft-card" id="card-${id}">
+                    <div class="nft-image-wrapper">
+                      <img class="nft-image" 
+                           data-token-id="${id}"
+                           src="${imageUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%23131a26"/%3E%3Ctext x="100" y="105" font-size="16" text-anchor="middle" fill="%239ca3af"%3ENo Image%3C/text%3E%3C/svg%3E'}" 
+                           alt="${name}"
+                           loading="lazy"
+                           onerror="handleImageError('${id}', this)"
+                           onload="handleImageLoad('${id}')"
+                      />
+                      <button class="refresh-btn" 
+                              data-refresh-id="${id}" 
+                              onclick="refreshImage('${id}')"
+                              title="ছবি রিফ্রেশ করুন">
+                        ↻
+                      </button>
+                    </div>
+                    <div class="nft-info">
+                      <div class="nft-name">${name}</div>
+                      <div class="nft-id">ID: ${id}</div>
+                      <div class="nft-owner">👤 ${owner.slice(0, 6)}...${owner.slice(-4)}</div>
+                    </div>
+                  </div>
+                `;
+            });
+
+            grid.innerHTML = html;
+            renderPagination();
+            
+            // এরর কাউন্ট আপডেট
+            errorCountEl.textContent = imageErrorCount;
+        }
+
+        // ============= ছবি লোড হ্যান্ডলার =============
+        function handleImageError(tokenId, imgElement) {
+            imgElement.classList.add('error');
+            // রিফ্রেশ বাটন দেখাও
+            const refreshBtn = document.querySelector(`button[data-refresh-id="${tokenId}"]`);
+            if (refreshBtn) {
+                refreshBtn.classList.add('show');
+            }
+            
+            // এরর কাউন্ট বাড়াও (শুধু যদি আগে এরর না থাকে)
+            if (!imgElement.dataset.errorCounted) {
+                imgElement.dataset.errorCounted = 'true';
+                imageErrorCount++;
+                errorCountEl.textContent = imageErrorCount;
+            }
+        }
+
+        function handleImageLoad(tokenId) {
+            const imgElement = document.querySelector(`img[data-token-id="${tokenId}"]`);
+            if (imgElement) {
+                imgElement.classList.remove('error');
+                // যদি আগে এরর কাউন্টেড ছিল, কাউন্ট কমাও
+                if (imgElement.dataset.errorCounted === 'true') {
+                    imgElement.dataset.errorCounted = 'false';
+                    imageErrorCount = Math.max(0, imageErrorCount - 1);
+                    errorCountEl.textContent = imageErrorCount;
+                }
+            }
+            // রিফ্রেশ বাটন লুকাও
+            const refreshBtn = document.querySelector(`button[data-refresh-id="${tokenId}"]`);
+            if (refreshBtn) {
+                refreshBtn.classList.remove('show');
+            }
+        }
+
+        // ============= পেজিনেশন =============
+        function renderPagination() {
+            const totalPages = Math.ceil(allTokens.length / PAGE_SIZE);
+            if (totalPages <= 1) {
+                paginationArea.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            html += `<button class="page-btn" data-page="1" ${currentPage === 1 ? 'disabled' : ''}>প্রথম</button>`;
+            html += `<button class="page-btn" data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>◀</button>`;
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+            if (endPage - startPage < 4) {
+                if (startPage === 1) endPage = Math.min(5, totalPages);
+                else if (endPage === totalPages) startPage = Math.max(1, totalPages - 4);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+            }
+
+            html += `<button class="page-btn" data-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>▶</button>`;
+            html += `<button class="page-btn" data-page="${totalPages}" ${currentPage === totalPages ? 'disabled' : ''}>শেষ</button>`;
+
+            paginationArea.innerHTML = html;
+
+            document.querySelectorAll('.page-btn[data-page]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const page = parseInt(this.dataset.page);
+                    if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                        currentPage = page;
+                        renderPage(currentPage);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                });
+            });
+        }
+
+        // ============= ডেটা ক্লিয়ার =============
+        function clearData() {
+            allTokens = [];
+            currentPage = 1;
+            imageErrorCount = 0;
+            grid.innerHTML = `<div class="loading">🔍 ডেটা লোড করতে উপরের বাটনে ক্লিক করুন</div>`;
+            statsContainer.style.display = 'none';
+            paginationArea.innerHTML = '';
+            messageArea.innerHTML = '';
+            errorCountEl.textContent = '0';
+        }
+
+        // ============= ইভেন্ট লিসেনার =============
+        loadBtn.addEventListener('click', loadAllTokens);
+        clearBtn.addEventListener('click', clearData);
+
+        // শুরুতে ক্লিয়ার মেসেজ
+        clearData();
+    </script>
+</body>
+</html>
