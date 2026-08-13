@@ -1,439 +1,893 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="referrer" content="no-referrer">
-    <title>NFT Collection Gallery & Downloader</title>
-
-    <!-- JSZip and FileSaver CDN for Zip functionality -->
+    <title>Aptos NFT Explorer & Downloader</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- JSZip and FileSaver CDN for Zip creation & download -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
+        :root {
+            --bg-primary: #0b0f17;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-glass: rgba(255, 255, 255, 0.03);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(0, 229, 153, 0.4);
+            
+            --accent-primary: #00e599;
+            --accent-hover: #00b377;
+            --accent-glow: rgba(0, 229, 153, 0.15);
+            --accent-blue: #3b82f6;
+            
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-full: 9999px;
+            
+            --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 0 20px var(--accent-glow);
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            background-color: #0f172a;
-            color: #f8fafc;
-            padding: 20px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 229, 153, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+        .container {
+            width: 100%;
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
         }
 
         header {
-            text-align: center;
-            margin-bottom: 25px;
+            background: rgba(11, 15, 23, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-glass);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 1rem 0;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .brand-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-blue));
+            border-radius: var(--radius-sm);
+            display: grid;
+            place-items: center;
+            color: #000;
+            font-weight: 800;
+            font-size: 1.1rem;
         }
 
         h1 {
-            color: #38bdf8;
-            margin-bottom: 10px;
-            font-size: 2.2rem;
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 30%, var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        /* Stats Bar */
-        .stats-container {
+        .subtitle { font-size: 0.85rem; color: var(--text-secondary); }
+
+        .header-meta {
             display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin: 15px 0;
+            align-items: center;
+            gap: 0.75rem;
             flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            padding: 0.35rem 0.75rem;
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--accent-primary);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-primary);
+        }
+
+        .address-box {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-glass);
+            padding: 0.35rem 0.75rem;
+            border-radius: var(--radius-full);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 2px;
+            display: inline-flex;
+        }
+        .btn-icon:hover { color: var(--accent-primary); }
+
+        .stats-section {
+            margin: 2rem 0 1.5rem 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
         }
 
         .stat-card {
-            background-color: #1e293b;
-            padding: 10px 20px;
-            border-radius: 8px;
-            border: 1px solid #334155;
-            font-size: 0.95rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            backdrop-filter: blur(8px);
         }
 
-        .stat-card span {
-            font-weight: bold;
+        .stat-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
         }
 
-        .text-success { color: #4ade80; }
-        .text-danger { color: #f87171; }
-        .text-info { color: #38bdf8; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; }
 
-        /* Controls & Pagination */
-        .controls {
+        .download-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
             display: flex;
-            justify-content: center;
+            gap: 1rem;
             align-items: center;
-            gap: 12px;
-            margin-top: 15px;
+            justify-content: space-between;
             flex-wrap: wrap;
         }
 
-        button {
-            padding: 10px 18px;
-            background-color: #0284c7;
-            color: white;
+        .download-btn-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, var(--accent-primary), #00b377);
+            color: #000;
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 0.65rem 1.25rem;
+            border-radius: var(--radius-full);
             border: none;
-            border-radius: 6px;
-            font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        button:hover {
-            background-color: #0369a1;
+        .btn-download:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 229, 153, 0.3);
         }
 
-        button:disabled {
-            background-color: #334155;
+        .btn-download:disabled {
+            opacity: 0.4;
             cursor: not-allowed;
+            background: #374151;
+            color: #9ca3af;
         }
 
-        .btn-zip {
-            background-color: #16a34a;
+        .controls-section {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
         }
 
-        .btn-zip:hover {
-            background-color: #15803d;
-        }
-
-        input {
-            padding: 9px;
-            border-radius: 6px;
-            border: 1px solid #334155;
-            background-color: #1e293b;
-            color: white;
-            width: 100px;
-            text-align: center;
+        .search-box { flex: 1; min-width: 280px; position: relative; }
+        .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        
+        .search-input {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem 0.75rem 2.75rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
             outline: none;
         }
+        .search-input:focus { border-color: var(--accent-primary); }
 
-        /* Gallery Grid */
+        .filter-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1.25rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .filter-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            display: none;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.25rem;
+        }
+        .filter-panel.open { display: grid; }
+
+        .status-container { margin-bottom: 1.5rem; }
+        .status-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .status-info { display: flex; align-items: center; gap: 0.75rem; }
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .progress-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-blue));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
         .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px;
-            max-width: 1400px;
-            margin: 25px auto;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
+        @media (min-width: 640px) { .gallery-grid { grid-template-columns: repeat(3, 1fr); gap: 1.25rem; } }
+        @media (min-width: 1024px) { .gallery-grid { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; } }
+        @media (min-width: 1280px) { .gallery-grid { grid-template-columns: repeat(5, 1fr); } }
 
-        .card {
-            background-color: #1e293b;
-            border-radius: 8px;
-            border: 1px solid #334155;
-            padding: 10px;
-            text-align: center;
+        .nft-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            cursor: pointer;
+            transition: var(--transition);
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            transition: transform 0.2s;
         }
+        .nft-card:hover { transform: translateY(-4px); border-color: var(--border-hover); box-shadow: var(--shadow-glow); }
 
-        .card:hover {
-            transform: translateY(-3px);
-        }
-
-        .img-wrapper {
+        .nft-image-wrapper {
             width: 100%;
             aspect-ratio: 1 / 1;
-            background-color: #0f172a;
-            border-radius: 6px;
-            overflow: hidden;
-            position: relative;
+            background: rgba(0, 0, 0, 0.4);
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+        }
+        .nft-image { width: 100%; height: 100%; object-fit: cover; }
+
+        .nft-info { padding: 1rem; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1; }
+        .nft-name { font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .nft-token-id { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent-primary); margin-top: 0.25rem; }
+
+        .load-more-container { display: flex; justify-content: center; margin: 2rem 0 4rem 0; }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), #00b377);
+            color: #000;
+            font-weight: 700;
+            padding: 0.85rem 2rem;
+            border-radius: var(--radius-full);
+            border: none;
             cursor: pointer;
         }
 
-        img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            padding: 1.5rem; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
         }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        .modal-container {
+            background: var(--bg-secondary); border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg); max-width: 900px; width: 100%; max-height: 90vh;
+            overflow-y: auto; padding: 2rem; position: relative;
+        }
+        .modal-close-btn { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.1); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; }
 
-        .error-box {
-            display: none;
-            flex-direction: column;
-            gap: 8px;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-            background-color: #1e293b;
-            color: #f87171;
-            font-size: 12px;
-            padding: 5px;
-        }
-
-        .retry-btn {
-            background-color: #ef4444;
-            padding: 6px 12px;
-            font-size: 11px;
-        }
-
-        /* Modal View */
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background-color: rgba(0, 0, 0, 0.85);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .modal-content {
-            max-width: 90%;
-            max-height: 85vh;
-            border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            color: white;
-            font-size: 35px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .modal-caption {
-            position: absolute;
-            bottom: 20px;
-            color: white;
-            font-size: 1.1rem;
-            background: rgba(0,0,0,0.6);
-            padding: 5px 15px;
-            border-radius: 20px;
-        }
+        footer { margin-top: auto; border-top: 1px solid var(--border-glass); padding: 2rem 0; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>NFT Collection Gallery</h1>
-        <p>Browsing 7,000 NFTs (100 items per page)</p>
-
-        <!-- Live Counters -->
-        <div class="stats-container">
-            <div class="stat-card">Page Items: <span id="stat-total" class="text-info">0</span></div>
-            <div class="stat-card">Loaded: <span id="stat-loaded" class="text-success">0</span></div>
-            <div class="stat-card">Failed: <span id="stat-failed" class="text-danger">0</span></div>
-        </div>
-
-        <!-- Controls -->
-        <div class="controls">
-            <button id="prev-btn" onclick="changePage(-1)">← Previous</button>
-            <span>Page <strong id="page-num">1</strong> / 70</span>
-            <button id="next-btn" onclick="changePage(1)">Next →</button>
-            
-            <span style="margin-left: 10px;">Jump to ID:</span>
-            <input type="number" id="jump-id" min="1" max="7000" placeholder="1-7000">
-            <button onclick="jumpToID()">Go</button>
-
-            <button id="download-btn" class="btn-zip" onclick="downloadLoadedZip()">📦 Download Loaded as ZIP</button>
+        <div class="container header-content">
+            <div class="brand-title">
+                <div class="brand-logo">A</div>
+                <div>
+                    <h1>Aptos NFT Explorer</h1>
+                    <div class="subtitle">Explore & Download entire NFT collection</div>
+                </div>
+            </div>
+            <div class="header-meta">
+                <div class="badge"><span class="badge-dot"></span>Aptos Mainnet</div>
+                <div class="address-box">
+                    <span id="collectionAddressShort">0xef50...e946</span>
+                    <button class="btn-icon" id="copyAddressBtn" title="Copy Address">📋</button>
+                </div>
+            </div>
         </div>
     </header>
 
-    <div class="gallery-grid" id="gallery"></div>
+    <main class="container">
+        <section class="stats-section">
+            <div class="stat-card">
+                <div class="stat-label">Collection Name</div>
+                <div class="stat-value" id="statCollectionName">Loading...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total NFTs Discovered</div>
+                <div class="stat-value" id="statTotalNFTs">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Loaded Metadata</div>
+                <div class="stat-value" id="statLoadedNFTs">0</div>
+            </div>
+        </section>
 
-    <!-- Image Modal Window -->
-    <div class="modal" id="image-modal" onclick="closeModal()">
-        <span class="modal-close">&times;</span>
-        <img class="modal-content" id="modal-img">
-        <div class="modal-caption" id="modal-caption"></div>
+        <!-- Download Action Panel -->
+        <div class="download-bar">
+            <div>
+                <strong style="font-size: 0.9rem;">Download All Assets:</strong>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);" id="downloadStatusText">
+                    Waiting for NFTs to finish loading...
+                </div>
+            </div>
+            <div class="download-btn-group">
+                <button id="downloadImagesBtn" class="btn-download" disabled>
+                    📥 Download Images (.zip)
+                </button>
+                <button id="downloadJsonBtn" class="btn-download" disabled>
+                    📥 Download Metadata (.zip)
+                </button>
+            </div>
+        </div>
+
+        <section class="controls-section">
+            <div class="search-box">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search by name, ID or trait...">
+            </div>
+            <button id="toggleFilterBtn" class="filter-toggle-btn">
+                <span>Filter Traits</span>
+            </button>
+        </section>
+
+        <div id="filterPanel" class="filter-panel"></div>
+
+        <div id="statusContainer" class="status-container">
+            <div class="status-bar">
+                <div class="status-info">
+                    <div class="spinner" id="statusSpinner"></div>
+                    <div>
+                        <div id="statusState" style="font-weight:700; font-size:0.9rem;">Initializing...</div>
+                        <div id="statusText" style="font-size:0.8rem; color:var(--text-secondary);">Connecting to Aptos Mainnet...</div>
+                    </div>
+                </div>
+                <div id="statusCount" style="font-family:'JetBrains Mono', monospace; font-size:0.85rem;">0 / 0</div>
+            </div>
+            <div class="progress-track">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+        </div>
+
+        <div id="galleryGrid" class="gallery-grid"></div>
+
+        <div id="loadMoreContainer" class="load-more-container" style="display:none;">
+            <button id="loadMoreBtn" class="btn-primary">Load Next Batch</button>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="nftModal" class="modal-overlay">
+        <div class="modal-container">
+            <button id="modalCloseBtn" class="modal-close-btn">&times;</button>
+            <h2 id="modalNFTName">NFT Details</h2>
+            <div id="modalBodyContent" style="margin-top:1rem; font-size:0.9rem; color:var(--text-secondary);"></div>
+        </div>
     </div>
 
+    <footer>
+        <div class="container">Built for Aptos Mainnet &bull; Address: 0xef50...e946</div>
+    </footer>
+
     <script>
-        const baseUrl = "https://2w4vanuecnlrmjhaorxhfn2c4bqarywouhmovqtqvpaqymp6lfaa.mainnet-1.datasprite-cdn.com/FPHjSMETs7eqAtoftL5b3zg4s9X8XDPSC1fe19dGARgs/";
-        const itemsPerPage = 100;
-        let currentPage = 1;
-
-        let loadedCount = 0;
-        let failedCount = 0;
-        const loadedImagesMap = new Map(); // Store loaded image Blobs for Zip
-
-        function loadPage(page) {
-            currentPage = page;
-            const gallery = document.getElementById('gallery');
-            gallery.innerHTML = ''; 
-
-            // Reset counters for current page
-            loadedCount = 0;
-            failedCount = 0;
-            loadedImagesMap.clear();
-            updateStats(itemsPerPage);
-
-            const startID = (page - 1) * itemsPerPage + 1;
-            const endID = Math.min(page * itemsPerPage, 7000);
-            const totalPageItems = (endID - startID) + 1;
-
-            document.getElementById('page-num').innerText = page;
-            document.getElementById('prev-btn').disabled = (page === 1);
-            document.getElementById('next-btn').disabled = (page === 70);
-
-            updateStats(totalPageItems);
-
-            for (let id = startID; id <= endID; id++) {
-                const imgUrl = `${baseUrl}${id}.jpeg`;
-
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.id = `card-${id}`;
-
-                card.innerHTML = `
-                    <div class="img-wrapper" onclick="openModal('${imgUrl}', ${id})">
-                        <img 
-                            src="${imgUrl}" 
-                            alt="NFT #${id}"
-                            onload="onImageLoad(${id}, '${imgUrl}')"
-                            onerror="onImageError(${id})"
-                        >
-                        <div class="error-box" id="error-${id}">
-                            <span>Failed to load</span>
-                            <button class="retry-btn" onclick="event.stopPropagation(); reloadSingleImg(${id})">🔄 Refresh</button>
-                        </div>
-                    </div>
-                    <div>
-                        <strong>Item #${id}</strong>
-                    </div>
-                `;
-
-                gallery.appendChild(card);
+        const ALCHEMY_API_KEY = "YOUR_ALCHEMY_API_KEY";
+        const COLLECTION_ADDRESS = "0xef50cde1a5ffaea0cd0671a0f17de69ad6172eaaa673c8136d0a8e319ca9e946";
+        
+        const getRpcEndpoint = () => {
+            if (ALCHEMY_API_KEY && ALCHEMY_API_KEY !== "YOUR_ALCHEMY_API_KEY") {
+                return `https://aptos-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
             }
+            return "https://fullnode.mainnet.aptoslabs.com/v1";
+        };
 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        const IPFS_GATEWAYS = ["https://ipfs.io/ipfs/", "https://gateway.pinata.cloud/ipfs/", "https://cloudflare-ipfs.com/ipfs/"];
+        const ARWEAVE_GATEWAYS = ["https://arweave.net/"];
 
-        // Image Load Success Handler
-        function onImageLoad(id, url) {
-            loadedCount++;
-            updateStats();
+        const state = {
+            collectionName: "Aptos Collection",
+            rawNFTs: [],
+            loadedNFTs: [],
+            filteredNFTs: [],
+            renderedCount: 0,
+            pageSize: 24,
+            traitsMap: {},
+            selectedFilters: {},
+            searchQuery: "",
+            isFullyLoaded: false
+        };
 
-            // Fetch Blob data for future ZIP export
-            fetch(url, { referrerPolicy: 'no-referrer' })
-                .then(res => res.blob())
-                .then(blob => {
-                    loadedImagesMap.set(id, blob);
-                })
-                .catch(() => {
-                    // Blob fetch fallback if direct fetch blocked
-                });
-        }
+        const elements = {
+            collectionAddressShort: document.getElementById('collectionAddressShort'),
+            copyAddressBtn: document.getElementById('copyAddressBtn'),
+            statCollectionName: document.getElementById('statCollectionName'),
+            statTotalNFTs: document.getElementById('statTotalNFTs'),
+            statLoadedNFTs: document.getElementById('statLoadedNFTs'),
+            searchInput: document.getElementById('searchInput'),
+            toggleFilterBtn: document.getElementById('toggleFilterBtn'),
+            filterPanel: document.getElementById('filterPanel'),
+            statusContainer: document.getElementById('statusContainer'),
+            statusState: document.getElementById('statusState'),
+            statusText: document.getElementById('statusText'),
+            statusCount: document.getElementById('statusCount'),
+            statusSpinner: document.getElementById('statusSpinner'),
+            progressFill: document.getElementById('progressFill'),
+            galleryGrid: document.getElementById('galleryGrid'),
+            loadMoreContainer: document.getElementById('loadMoreContainer'),
+            loadMoreBtn: document.getElementById('loadMoreBtn'),
+            downloadImagesBtn: document.getElementById('downloadImagesBtn'),
+            downloadJsonBtn: document.getElementById('downloadJsonBtn'),
+            downloadStatusText: document.getElementById('downloadStatusText'),
+            nftModal: document.getElementById('nftModal'),
+            modalCloseBtn: document.getElementById('modalCloseBtn'),
+            modalNFTName: document.getElementById('modalNFTName'),
+            modalBodyContent: document.getElementById('modalBodyContent')
+        };
 
-        // Image Load Fail Handler
-        function onImageError(id) {
-            failedCount++;
-            updateStats();
+        window.addEventListener('DOMContentLoaded', () => {
+            setupHandlers();
+            startExplorer();
+        });
 
-            const card = document.getElementById(`card-${id}`);
-            if (card) {
-                const img = card.querySelector('img');
-                const errorBox = card.querySelector('.error-box');
-                if (img) img.style.display = 'none';
-                if (errorBox) errorBox.style.display = 'flex';
-            }
-        }
-
-        // Single Image Refresh
-        function reloadSingleImg(id) {
-            const card = document.getElementById(`card-${id}`);
-            if (card) {
-                const img = card.querySelector('img');
-                const errorBox = card.querySelector('.error-box');
-                
-                errorBox.style.display = 'none';
-                img.style.display = 'block';
-
-                failedCount = Math.max(0, failedCount - 1);
-                updateStats();
-
-                // Reload with cache bypass
-                const newUrl = `${baseUrl}${id}.jpeg?t=${new Date().getTime()}`;
-                img.src = newUrl;
-            }
-        }
-
-        // Update Live Statistics Counter
-        function updateStats(totalItems) {
-            if (totalItems !== undefined) {
-                document.getElementById('stat-total').innerText = totalItems;
-            }
-            document.getElementById('stat-loaded').innerText = loadedCount;
-            document.getElementById('stat-failed').innerText = failedCount;
-        }
-
-        // Page Switcher
-        function changePage(step) {
-            const newPage = currentPage + step;
-            if (newPage >= 1 && newPage <= 70) {
-                loadPage(newPage);
-            }
-        }
-
-        // ID Jump
-        function jumpToID() {
-            const id = parseInt(document.getElementById('jump-id').value);
-            if (id >= 1 && id <= 7000) {
-                const targetPage = Math.ceil(id / itemsPerPage);
-                loadPage(targetPage);
-            } else {
-                alert('Please enter an ID between 1 and 7000.');
-            }
-        }
-
-        // Modal Zoom Functionality
-        function openModal(url, id) {
-            const modal = document.getElementById('image-modal');
-            const modalImg = document.getElementById('modal-img');
-            const modalCaption = document.getElementById('modal-caption');
-
-            modal.style.display = 'flex';
-            modalImg.src = url;
-            modalCaption.innerText = `NFT #${id}`;
-        }
-
-        function closeModal() {
-            document.getElementById('image-modal').style.display = 'none';
-        }
-
-        // ZIP Download Functionality (Saves as 1.png, 2.png, etc.)
-        async function downloadLoadedZip() {
-            if (loadedImagesMap.size === 0) {
-                alert('No successfully loaded images available to download on this page yet.');
-                return;
-            }
-
-            const zipBtn = document.getElementById('download-btn');
-            const originalText = zipBtn.innerText;
-            zipBtn.innerText = '⏳ Compiling ZIP...';
-            zipBtn.disabled = true;
-
-            const zip = new JSZip();
-
-            // Add images to ZIP named as 1.png, 2.png, etc.
-            loadedImagesMap.forEach((blob, id) => {
-                zip.file(`${id}.png`, blob);
+        function setupHandlers() {
+            elements.copyAddressBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(COLLECTION_ADDRESS);
+                alert("Address copied!");
             });
 
+            elements.toggleFilterBtn.addEventListener('click', () => {
+                elements.filterPanel.classList.toggle('open');
+            });
+
+            elements.searchInput.addEventListener('input', (e) => {
+                state.searchQuery = e.target.value.toLowerCase().trim();
+                applySearchAndFilters();
+            });
+
+            elements.loadMoreBtn.addEventListener('click', renderNextBatch);
+            elements.modalCloseBtn.addEventListener('click', () => elements.nftModal.classList.remove('open'));
+
+            elements.downloadImagesBtn.addEventListener('click', downloadImagesZip);
+            elements.downloadJsonBtn.addEventListener('click', downloadMetadataZip);
+        }
+
+        function resolveURI(uri) {
+            if (!uri) return '';
+            uri = uri.trim();
+            if (uri.startsWith('ipfs://')) return `${IPFS_GATEWAYS[0]}${uri.replace('ipfs://', '')}`;
+            if (uri.startsWith('ar://')) return `${ARWEAVE_GATEWAYS[0]}${uri.replace('ar://', '')}`;
+            return uri;
+        }
+
+        async function fetchJSON(url, options = {}) {
+            const res = await fetch(url, options);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        }
+
+        async function startExplorer() {
             try {
-                const content = await zip.generateAsync({ type: 'blob' });
-                saveAs(content, `NFT_Collection_Page_${currentPage}.zip`);
+                updateStatus("Loading", "Discovering collection tokens...", 0, 0);
+
+                const allTokens = await fetchAllCollectionTokens(COLLECTION_ADDRESS);
+                state.rawNFTs = allTokens;
+                elements.statTotalNFTs.textContent = allTokens.length.toLocaleString();
+
+                if (allTokens.length === 0) {
+                    updateStatus("Complete", "No NFTs found", 0, 0);
+                    elements.statusSpinner.style.display = 'none';
+                    return;
+                }
+
+                elements.statCollectionName.textContent = allTokens[0].collection || "Aptos Collection";
+                await processAllNFTsProgressively(allTokens);
+
             } catch (err) {
-                alert('Error creating ZIP file. Please try again.');
-            } finally {
-                zipBtn.innerText = originalText;
-                zipBtn.disabled = false;
+                console.error(err);
+                updateStatus("Error", "Failed to fetch collection data", 0, 0);
+                elements.statusSpinner.style.display = 'none';
             }
         }
 
-        // Initial Load
-        loadPage(1);
+        async function fetchAllCollectionTokens(address) {
+            let allTokens = [];
+            let offset = 0;
+            const limit = 100;
+            let hasMore = true;
+
+            while (hasMore) {
+                try {
+                    const query = {
+                        query: `
+                            query GetCollectionTokens($addr: String!, $limit: Int!, $offset: Int!) {
+                                current_token_datas_v2(
+                                    where: { collection_id: { _eq: $addr } }
+                                    limit: $limit
+                                    offset: $offset
+                                ) {
+                                    token_data_id
+                                    token_name
+                                    token_uri
+                                    description
+                                    current_collection { collection_name creator_address }
+                                }
+                            }
+                        `,
+                        variables: { addr: address, limit: limit, offset: offset }
+                    };
+
+                    const res = await fetchJSON(`https://indexer.mainnet.aptoslabs.com/v1/graphql`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(query)
+                    });
+
+                    const tokens = res?.data?.current_token_datas_v2 || [];
+                    if (tokens.length > 0) {
+                        tokens.forEach(t => {
+                            allTokens.push({
+                                id: t.token_data_id || t.token_name,
+                                name: t.token_name,
+                                uri: t.token_uri,
+                                description: t.description,
+                                collection: t.current_collection?.collection_name || "Aptos Collection"
+                            });
+                        });
+                        offset += limit;
+                        elements.statTotalNFTs.textContent = allTokens.length.toString();
+                        if (tokens.length < limit) hasMore = false;
+                    } else {
+                        hasMore = false;
+                    }
+                } catch (e) {
+                    hasMore = false;
+                }
+            }
+            return allTokens;
+        }
+
+        async function processAllNFTsProgressively(rawTokens) {
+            const total = rawTokens.length;
+            const batchSize = 15;
+
+            for (let i = 0; i < total; i += batchSize) {
+                const batch = rawTokens.slice(i, i + batchSize);
+                const resolvedBatch = await Promise.all(batch.map(t => resolveNFTMetadata(t)));
+
+                resolvedBatch.forEach(nft => {
+                    state.loadedNFTs.push(nft);
+                    registerTraits(nft.attributes);
+                });
+
+                const loadedCount = state.loadedNFTs.length;
+                elements.statLoadedNFTs.textContent = loadedCount.toLocaleString();
+                updateStatus("Loading Metadata", `Loaded ${loadedCount} of ${total} NFTs`, loadedCount, total);
+
+                applySearchAndFilters();
+            }
+
+            state.isFullyLoaded = true;
+            updateStatus("Complete", `Loaded all ${total} NFTs successfully!`, total, total);
+            elements.statusSpinner.style.display = 'none';
+
+            // Enable Download Buttons instantly as soon as loading finishes
+            elements.downloadImagesBtn.disabled = false;
+            elements.downloadJsonBtn.disabled = false;
+            elements.downloadStatusText.textContent = "All NFTs loaded. Ready for instant download!";
+            elements.downloadStatusText.style.color = "var(--accent-primary)";
+        }
+
+        async function resolveNFTMetadata(token) {
+            let metadata = {
+                id: token.id,
+                name: token.name || token.id,
+                description: token.description || '',
+                image: '',
+                uri: token.uri || '',
+                collection: token.collection || 'Aptos NFT',
+                attributes: [],
+                rawJson: {}
+            };
+
+            if (token.uri) {
+                try {
+                    const resolved = resolveURI(token.uri);
+                    const json = await fetchJSON(resolved);
+                    if (json) {
+                        metadata.rawJson = json;
+                        metadata.name = json.name || metadata.name;
+                        metadata.description = json.description || metadata.description;
+                        metadata.image = resolveURI(json.image || json.image_url || '');
+                        
+                        const attrs = json.attributes || json.traits || [];
+                        if (Array.isArray(attrs)) {
+                            metadata.attributes = attrs.map(a => ({
+                                trait_type: a.trait_type || 'Trait',
+                                value: String(a.value)
+                            }));
+                        }
+                    }
+                } catch (e) {
+                    metadata.image = resolveURI(token.uri);
+                }
+            }
+            return metadata;
+        }
+
+        function registerTraits(attributes) {
+            attributes.forEach(attr => {
+                if (!state.traitsMap[attr.trait_type]) {
+                    state.traitsMap[attr.trait_type] = new Set();
+                }
+                state.traitsMap[attr.trait_type].add(attr.value);
+            });
+        }
+
+        function applySearchAndFilters() {
+            state.filteredNFTs = state.loadedNFTs.filter(nft => {
+                if (state.searchQuery) {
+                    const q = state.searchQuery;
+                    const matchName = nft.name.toLowerCase().includes(q);
+                    const matchId = String(nft.id).toLowerCase().includes(q);
+                    if (!matchName && !matchId) return false;
+                }
+                return true;
+            });
+
+            state.renderedCount = 0;
+            elements.galleryGrid.innerHTML = '';
+            renderNextBatch();
+        }
+
+        function renderNextBatch() {
+            const nextBatch = state.filteredNFTs.slice(state.renderedCount, state.renderedCount + state.pageSize);
+            nextBatch.forEach(nft => {
+                const card = document.createElement('div');
+                card.className = 'nft-card';
+                card.innerHTML = `
+                    <div class="nft-image-wrapper">
+                        ${nft.image ? `<img class="nft-image" src="${nft.image}" loading="lazy"/>` : '<span>No Image</span>'}
+                    </div>
+                    <div class="nft-info">
+                        <div class="nft-name">${nft.name}</div>
+                        <div class="nft-token-id">${nft.id}</div>
+                    </div>
+                `;
+                card.addEventListener('click', () => {
+                    elements.modalNFTName.textContent = nft.name;
+                    elements.modalBodyContent.innerHTML = `<pre style="font-size:0.75rem; color:#a7f3d0; overflow-x:auto;">${JSON.stringify(nft.rawJson, null, 2)}</pre>`;
+                    elements.nftModal.classList.add('open');
+                });
+                elements.galleryGrid.appendChild(card);
+            });
+
+            state.renderedCount += nextBatch.length;
+            elements.loadMoreContainer.style.display = state.renderedCount < state.filteredNFTs.length ? 'flex' : 'none';
+        }
+
+        function updateStatus(label, text, current, total) {
+            elements.statusState.textContent = label;
+            elements.statusText.textContent = text;
+            elements.statusCount.textContent = `${current} / ${total}`;
+            elements.progressFill.style.width = total > 0 ? `${(current / total) * 100}%` : '0%';
+        }
+
+        // ================= SUPER FAST PARALLEL DOWNLOADER ================= //
+
+        async function downloadImagesZip() {
+            const zip = new JSZip();
+            const imgFolder = zip.folder("images");
+            
+            elements.downloadImagesBtn.disabled = true;
+            elements.downloadStatusText.textContent = "Super fast parallel download started...";
+
+            const total = state.loadedNFTs.length;
+            let completed = 0;
+            const concurrencyLimit = 20; // একসঙ্গে ২০টি ফাইল ডাউনলোড হবে
+
+            let index = 0;
+            async function worker() {
+                while (index < total) {
+                    const currentIndex = index++;
+                    const nft = state.loadedNFTs[currentIndex];
+                    const fileNum = currentIndex + 1;
+
+                    if (nft.image) {
+                        let success = false;
+                        let blob = null;
+
+                        // একাধিক গেটওয়ে দিয়ে চেষ্টা করা হবে যাতে একটিও ফেইল বা রিজেক্ট না করে
+                        const urlsToTry = [nft.image];
+                        if (nft.image.includes("ipfs/")) {
+                            const ipfsHash = nft.image.split("ipfs/")[1];
+                            IPFS_GATEWAYS.forEach(gw => urlsToTry.push(gw + ipfsHash));
+                        }
+
+                        for (const url of urlsToTry) {
+                            try {
+                                const response = await fetch(url, { mode: 'cors' });
+                                if (response.ok) {
+                                    blob = await response.blob();
+                                    success = true;
+                                    break;
+                                }
+                            } catch (e) {
+                                // Ignore and try next gateway
+                            }
+                        }
+
+                        if (success && blob) {
+                            // সব ফাইল বাধ্যতামূলকভাবে .png এক্সটেনশন দিয়ে সেভ হবে
+                            imgFolder.file(`${fileNum}.png`, blob);
+                        } else {
+                            // ফেইল ঠেকাতে টেক্সট ফাইল বা ডামি ব্লব হিসেবে যুক্ত হবে যাতে প্রসেস থামবে না
+                            imgFolder.file(`${fileNum}.txt`, "Image fetch failed, URL: " + nft.image);
+                        }
+                    }
+
+                    completed++;
+                    elements.downloadStatusText.textContent = `Downloading Images: ${completed} / ${total} completed`;
+                }
+            }
+
+            const workers = [];
+            for (let i = 0; i < Math.min(concurrencyLimit, total); i++) {
+                workers.push(worker());
+            }
+
+            await Promise.all(workers);
+
+            elements.downloadStatusText.textContent = "Compressing ZIP file, please wait...";
+            const zipContent = await zip.generateAsync({ type: "blob" });
+            saveAs(zipContent, "aptos_nft_images.zip");
+            
+            elements.downloadImagesBtn.disabled = false;
+            elements.downloadStatusText.textContent = "Images ZIP downloaded successfully!";
+        }
+
+        async function downloadMetadataZip() {
+            const zip = new JSZip();
+            const jsonFolder = zip.folder("metadata");
+
+            elements.downloadJsonBtn.disabled = true;
+            elements.downloadStatusText.textContent = "Generating Metadata ZIP...";
+
+            state.loadedNFTs.forEach((nft, i) => {
+                const index = i + 1;
+                const jsonContent = JSON.stringify(nft.rawJson && Object.keys(nft.rawJson).length > 0 ? nft.rawJson : nft, null, 2);
+                jsonFolder.file(`${index}.json`, jsonContent);
+            });
+
+            elements.downloadStatusText.textContent = "Compressing Metadata ZIP File...";
+            const zipContent = await zip.generateAsync({ type: "blob" });
+            saveAs(zipContent, "aptos_nft_metadata.zip");
+
+            elements.downloadJsonBtn.disabled = false;
+            elements.downloadStatusText.textContent = "Metadata ZIP downloaded successfully!";
+        }
     </script>
 </body>
 </html>
