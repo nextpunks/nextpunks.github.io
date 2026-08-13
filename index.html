@@ -340,10 +340,10 @@
             border: 1px solid var(--border-glass);
             border-radius: var(--radius-md);
             overflow: hidden;
-            cursor: pointer;
             transition: var(--transition);
             display: flex;
             flex-direction: column;
+            position: relative;
         }
         .nft-card:hover { transform: translateY(-4px); border-color: var(--border-hover); box-shadow: var(--shadow-glow); }
 
@@ -355,12 +355,30 @@
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            cursor: pointer;
         }
         .nft-image { width: 100%; height: 100%; object-fit: cover; }
 
         .nft-info { padding: 1rem; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1; }
-        .nft-name { font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .nft-token-id { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent-primary); margin-top: 0.25rem; }
+        .nft-name { font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+        .nft-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 0.5rem; }
+        .nft-token-id { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent-primary); }
+
+        .btn-card-download {
+            background: rgba(0, 229, 153, 0.15);
+            border: 1px solid var(--border-hover);
+            color: var(--accent-primary);
+            padding: 0.25rem 0.65rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-card-download:hover {
+            background: var(--accent-primary);
+            color: #000;
+        }
 
         .load-more-container { display: flex; justify-content: center; margin: 2rem 0 4rem 0; }
         .btn-primary {
@@ -496,13 +514,6 @@
     <script>
         const ALCHEMY_API_KEY = "YOUR_ALCHEMY_API_KEY";
         const COLLECTION_ADDRESS = "0xef50cde1a5ffaea0cd0671a0f17de69ad6172eaaa673c8136d0a8e319ca9e946";
-        
-        const getRpcEndpoint = () => {
-            if (ALCHEMY_API_KEY && ALCHEMY_API_KEY !== "YOUR_ALCHEMY_API_KEY") {
-                return `https://aptos-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
-            }
-            return "https://fullnode.mainnet.aptoslabs.com/v1";
-        };
 
         const IPFS_GATEWAYS = ["https://ipfs.io/ipfs/", "https://gateway.pinata.cloud/ipfs/", "https://cloudflare-ipfs.com/ipfs/"];
         const ARWEAVE_GATEWAYS = ["https://arweave.net/"];
@@ -513,7 +524,7 @@
             loadedNFTs: [],
             filteredNFTs: [],
             renderedCount: 0,
-            pageSize: 24,
+            pageSize: 30,
             traitsMap: {},
             selectedFilters: {},
             searchQuery: "",
@@ -590,7 +601,7 @@
 
         async function startExplorer() {
             try {
-                updateStatus("Loading", "Discovering collection tokens...", 0, 0);
+                updateStatus("Discovering", "Fetching full NFT list from Aptos Mainnet...", 0, 0);
 
                 const allTokens = await fetchAllCollectionTokens(COLLECTION_ADDRESS);
                 state.rawNFTs = allTokens;
@@ -612,11 +623,13 @@
             }
         }
 
+        // ৭,০০০ টি NFT-ই যাতে কোনো ঝামেলা ছাড়া ক্রমানুসারে লোড হয়
         async function fetchAllCollectionTokens(address) {
             let allTokens = [];
             let offset = 0;
             const limit = 100;
             let hasMore = true;
+            let consecutiveFailures = 0;
 
             while (hasMore) {
                 try {
@@ -627,6 +640,7 @@
                                     where: { collection_id: { _eq: $addr } }
                                     limit: $limit
                                     offset: $offset
+                                    order_by: { token_name: asc }
                                 ) {
                                     token_data_id
                                     token_name
@@ -656,14 +670,23 @@
                                 collection: t.current_collection?.collection_name || "Aptos Collection"
                             });
                         });
-                        offset += limit;
+                        offset += tokens.length;
+                        consecutiveFailures = 0;
                         elements.statTotalNFTs.textContent = allTokens.length.toString();
+                        
+                        updateStatus("Discovering", `Discovered ${allTokens.length} NFTs so far...`, allTokens.length, allTokens.length);
+
                         if (tokens.length < limit) hasMore = false;
                     } else {
                         hasMore = false;
                     }
                 } catch (e) {
-                    hasMore = false;
+                    consecutiveFailures++;
+                    if (consecutiveFailures > 5) {
+                        hasMore = false; // নেটওয়ার্ক বেশি সমস্যায় পড়লে থামবে
+                    } else {
+                        await new Promise(r => setTimeout(r, 1000)); // ১ সেকেন্ড অপেক্ষা করে আবার রিট্রাই করবে
+                    }
                 }
             }
             return allTokens;
@@ -671,11 +694,11 @@
 
         async function processAllNFTsProgressively(rawTokens) {
             const total = rawTokens.length;
-            const batchSize = 15;
+            const batchSize = 20;
 
             for (let i = 0; i < total; i += batchSize) {
                 const batch = rawTokens.slice(i, i + batchSize);
-                const resolvedBatch = await Promise.all(batch.map(t => resolveNFTMetadata(t)));
+                const resolvedBatch = await Promise.all(batch.map((t, idx) => resolveNFTMetadata(t, i + idx + 1)));
 
                 resolvedBatch.forEach(nft => {
                     state.loadedNFTs.push(nft);
@@ -693,15 +716,15 @@
             updateStatus("Complete", `Loaded all ${total} NFTs successfully!`, total, total);
             elements.statusSpinner.style.display = 'none';
 
-            // Enable Download Buttons instantly as soon as loading finishes
             elements.downloadImagesBtn.disabled = false;
             elements.downloadJsonBtn.disabled = false;
             elements.downloadStatusText.textContent = "All NFTs loaded. Ready for instant download!";
             elements.downloadStatusText.style.color = "var(--accent-primary)";
         }
 
-        async function resolveNFTMetadata(token) {
+        async function resolveNFTMetadata(token, indexNum) {
             let metadata = {
+                indexNum: indexNum,
                 id: token.id,
                 name: token.name || token.id,
                 description: token.description || '',
@@ -773,19 +796,64 @@
                     </div>
                     <div class="nft-info">
                         <div class="nft-name">${nft.name}</div>
-                        <div class="nft-token-id">${nft.id}</div>
+                        <div class="nft-footer">
+                            <span class="nft-token-id">#${nft.indexNum}</span>
+                            <button class="btn-card-download" title="Download PNG">📥 PNG</button>
+                        </div>
                     </div>
                 `;
-                card.addEventListener('click', () => {
+
+                // কার্ডের ছবি ও নামের ওপর ক্লিক করলে মডেল ওপেন হবে
+                const imgWrap = card.querySelector('.nft-image-wrapper');
+                const titleWrap = card.querySelector('.nft-name');
+                const openModal = () => {
                     elements.modalNFTName.textContent = nft.name;
                     elements.modalBodyContent.innerHTML = `<pre style="font-size:0.75rem; color:#a7f3d0; overflow-x:auto;">${JSON.stringify(nft.rawJson, null, 2)}</pre>`;
                     elements.nftModal.classList.add('open');
+                };
+                imgWrap.addEventListener('click', openModal);
+                titleWrap.addEventListener('click', openModal);
+
+                // ম্যানুয়াল সিঙ্গেল কার্ড ডাউনলোড বাটন (১.png, ২.png ফরমেটে নাম হবে)
+                const dlBtn = card.querySelector('.btn-card-download');
+                dlBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    downloadSingleImage(nft);
                 });
+
                 elements.galleryGrid.appendChild(card);
             });
 
             state.renderedCount += nextBatch.length;
             elements.loadMoreContainer.style.display = state.renderedCount < state.filteredNFTs.length ? 'flex' : 'none';
+        }
+
+        // ম্যানুয়ালি একক ইমেজ PNG হিসেবে ডাউনলোড করার ফাংশন
+        async function downloadSingleImage(nft) {
+            if (!nft.image) {
+                alert("Image URL not available!");
+                return;
+            }
+
+            const urlsToTry = [nft.image];
+            if (nft.image.includes("ipfs/")) {
+                const ipfsHash = nft.image.split("ipfs/")[1];
+                IPFS_GATEWAYS.forEach(gw => urlsToTry.push(gw + ipfsHash));
+            }
+
+            for (const url of urlsToTry) {
+                try {
+                    const response = await fetch(url, { mode: 'cors' });
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        saveAs(blob, `${nft.indexNum}.png`);
+                        return;
+                    }
+                } catch (e) {
+                    // Try next gateway
+                }
+            }
+            alert("Failed to download image. Main source or gateways blocked CORS.");
         }
 
         function updateStatus(label, text, current, total) {
@@ -795,7 +863,7 @@
             elements.progressFill.style.width = total > 0 ? `${(current / total) * 100}%` : '0%';
         }
 
-        // ================= SUPER FAST PARALLEL DOWNLOADER ================= //
+        // ================= ZIP DOWNLOADER (১.png, ২.png ফরমেটে) ================= //
 
         async function downloadImagesZip() {
             const zip = new JSZip();
@@ -806,20 +874,19 @@
 
             const total = state.loadedNFTs.length;
             let completed = 0;
-            const concurrencyLimit = 20; // একসঙ্গে ২০টি ফাইল ডাউনলোড হবে
+            const concurrencyLimit = 20;
 
             let index = 0;
             async function worker() {
                 while (index < total) {
                     const currentIndex = index++;
                     const nft = state.loadedNFTs[currentIndex];
-                    const fileNum = currentIndex + 1;
+                    const fileNum = nft.indexNum;
 
                     if (nft.image) {
                         let success = false;
                         let blob = null;
 
-                        // একাধিক গেটওয়ে দিয়ে চেষ্টা করা হবে যাতে একটিও ফেইল বা রিজেক্ট না করে
                         const urlsToTry = [nft.image];
                         if (nft.image.includes("ipfs/")) {
                             const ipfsHash = nft.image.split("ipfs/")[1];
@@ -835,15 +902,13 @@
                                     break;
                                 }
                             } catch (e) {
-                                // Ignore and try next gateway
+                                // Try next gateway
                             }
                         }
 
                         if (success && blob) {
-                            // সব ফাইল বাধ্যতামূলকভাবে .png এক্সটেনশন দিয়ে সেভ হবে
                             imgFolder.file(`${fileNum}.png`, blob);
                         } else {
-                            // ফেইল ঠেকাতে টেক্সট ফাইল বা ডামি ব্লব হিসেবে যুক্ত হবে যাতে প্রসেস থামবে না
                             imgFolder.file(`${fileNum}.txt`, "Image fetch failed, URL: " + nft.image);
                         }
                     }
@@ -875,8 +940,8 @@
             elements.downloadJsonBtn.disabled = true;
             elements.downloadStatusText.textContent = "Generating Metadata ZIP...";
 
-            state.loadedNFTs.forEach((nft, i) => {
-                const index = i + 1;
+            state.loadedNFTs.forEach((nft) => {
+                const index = nft.indexNum;
                 const jsonContent = JSON.stringify(nft.rawJson && Object.keys(nft.rawJson).length > 0 ? nft.rawJson : nft, null, 2);
                 jsonFolder.file(`${index}.json`, jsonContent);
             });
