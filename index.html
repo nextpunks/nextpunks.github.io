@@ -1,571 +1,546 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aptos NFT Explorer • 7000+ images</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
-    <!-- JSZip + FileSaver -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-
-    <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #0b0f17;
-            color: #f9fafb;
-            min-height: 100vh;
-            background-image: radial-gradient(circle at 15% 15%, rgba(0,229,153,0.05) 0%, transparent 40%),
-                              radial-gradient(circle at 85% 85%, rgba(59,130,246,0.05) 0%, transparent 40%);
-            background-attachment: fixed;
-        }
-        ::-webkit-scrollbar { width:8px; height:8px; }
-        ::-webkit-scrollbar-track { background:#0b0f17; }
-        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:4px; }
-        .container { max-width:1440px; margin:0 auto; padding:0 1.5rem; }
-        
-        header {
-            background: rgba(11,15,23,0.8);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            position: sticky; top:0; z-index:100;
-            padding:0.8rem 0;
-        }
-        .header-content { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; }
-        .brand { display:flex; align-items:center; gap:0.75rem; }
-        .brand-logo {
-            width:34px; height:34px;
-            background: linear-gradient(135deg, #00e599, #3b82f6);
-            border-radius:8px; display:grid; place-items:center;
-            font-weight:800; color:#000;
-        }
-        h1 { font-size:1.3rem; font-weight:800; background:linear-gradient(135deg,#fff 30%,#9ca3af); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-        .subtitle { font-size:0.8rem; color:#9ca3af; }
-        .badge {
-            display:inline-flex; align-items:center; gap:0.3rem;
-            background:rgba(255,255,255,0.04);
-            border:1px solid rgba(255,255,255,0.08);
-            padding:0.25rem 0.7rem; border-radius:999px;
-            font-size:0.7rem; color:#9ca3af;
-        }
-        .badge-dot { width:6px; height:6px; background:#00e599; border-radius:50%; box-shadow:0 0 8px #00e599; }
-
-        .stats {
-            display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-            gap:0.8rem; margin:1.5rem 0;
-        }
-        .stat-card {
-            background:rgba(17,24,39,0.6); border:1px solid rgba(255,255,255,0.06);
-            border-radius:12px; padding:1rem 1.2rem;
-        }
-        .stat-label { font-size:0.65rem; text-transform:uppercase; color:#6b7280; font-weight:600; }
-        .stat-value { font-size:1.4rem; font-weight:700; }
-
-        .download-bar {
-            background:rgba(17,24,39,0.6); border:1px solid rgba(255,255,255,0.06);
-            border-radius:12px; padding:0.8rem 1.2rem;
-            display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
-            margin-bottom:1.2rem;
-        }
-        .btn-download {
-            background:linear-gradient(135deg,#00e599,#00b377);
-            color:#000; font-weight:700; font-size:0.8rem;
-            padding:0.6rem 1.2rem; border-radius:999px; border:none; cursor:pointer;
-            display:inline-flex; align-items:center; gap:0.4rem;
-            transition:0.2s;
-        }
-        .btn-download:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 4px 15px rgba(0,229,153,0.3); }
-        .btn-download:disabled { opacity:0.3; cursor:not-allowed; background:#374151; color:#9ca3af; }
-
-        .status-container {
-            background:rgba(17,24,39,0.5); border:1px solid rgba(255,255,255,0.06);
-            border-radius:12px; padding:0.8rem 1.2rem;
-            margin-bottom:1.5rem;
-            display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
-        }
-        .status-left { display:flex; align-items:center; gap:0.8rem; }
-        .spinner {
-            width:22px; height:22px;
-            border:2px solid rgba(255,255,255,0.08);
-            border-top:2px solid #00e599;
-            border-radius:50%;
-            animation: spin 0.7s linear infinite;
-        }
-        @keyframes spin { to { transform:rotate(360deg); } }
-        .progress-track { width:100%; height:3px; background:rgba(255,255,255,0.05); border-radius:2px; margin-top:0.6rem; }
-        .progress-fill { height:100%; background:linear-gradient(90deg,#00e599,#3b82f6); width:0%; transition:width 0.2s; }
-
-        .gallery {
-            display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
-            gap:1rem; margin:1.5rem 0;
-        }
-        @media (min-width:640px) { .gallery { grid-template-columns:repeat(3,1fr); } }
-        @media (min-width:1024px) { .gallery { grid-template-columns:repeat(5,1fr); } }
-
-        .nft-card {
-            background:rgba(17,24,39,0.5); border:1px solid rgba(255,255,255,0.06);
-            border-radius:12px; overflow:hidden; transition:0.2s;
-        }
-        .nft-card:hover { transform:translateY(-4px); border-color:rgba(0,229,153,0.3); box-shadow:0 0 20px rgba(0,229,153,0.05); }
-        .nft-img {
-            width:100%; aspect-ratio:1/1; object-fit:cover;
-            background:rgba(0,0,0,0.3); cursor:pointer;
-        }
-        .nft-info { padding:0.6rem 0.8rem; }
-        .nft-name { font-weight:600; font-size:0.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .nft-footer { display:flex; justify-content:space-between; align-items:center; margin-top:0.3rem; }
-        .nft-id { font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:#00e599; }
-        .btn-dl-single {
-            background:rgba(0,229,153,0.12);
-            border:1px solid rgba(0,229,153,0.2);
-            color:#00e599; font-size:0.65rem; font-weight:600;
-            padding:0.15rem 0.6rem; border-radius:6px; cursor:pointer;
-        }
-        .btn-dl-single:hover { background:#00e599; color:#000; }
-
-        .load-more { display:flex; justify-content:center; margin:1.5rem 0 3rem; }
-        .btn-primary {
-            background:linear-gradient(135deg,#00e599,#00b377);
-            color:#000; font-weight:700; padding:0.7rem 2rem; border-radius:999px; border:none; cursor:pointer;
-        }
-
-        .modal-overlay {
-            position:fixed; top:0; left:0; width:100%; height:100%;
-            background:rgba(0,0,0,0.8); backdrop-filter:blur(10px);
-            z-index:999; display:flex; align-items:center; justify-content:center;
-            opacity:0; pointer-events:none; transition:0.3s;
-        }
-        .modal-overlay.open { opacity:1; pointer-events:auto; }
-        .modal-box {
-            background:#111827; border:1px solid rgba(255,255,255,0.08);
-            border-radius:20px; max-width:700px; width:100%; max-height:90vh;
-            padding:1.5rem; overflow-y:auto; position:relative;
-        }
-        .modal-close {
-            position:absolute; top:0.8rem; right:1rem;
-            background:transparent; border:none; color:#fff; font-size:1.5rem; cursor:pointer;
-        }
-
-        footer { border-top:1px solid rgba(255,255,255,0.06); padding:1.5rem 0; text-align:center; font-size:0.75rem; color:#6b7280; margin-top:2rem; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZIP · mass image ext changer → PNG</title>
+  <!-- JSZip library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- FileSaver for download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+    }
+    body {
+      background: linear-gradient(145deg, #f6f9fc 0%, #e6f0f5 100%);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .card {
+      max-width: 820px;
+      width: 100%;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(4px);
+      border-radius: 2.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3), 0 4px 18px 0 rgba(0,0,0,0.08);
+      padding: 2.5rem 2.2rem;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    h1 {
+      font-weight: 600;
+      font-size: 2.1rem;
+      letter-spacing: -0.02em;
+      color: #0b2b3f;
+      margin-top: 0.2rem;
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .subhead {
+      color: #2c5770;
+      font-weight: 400;
+      font-size: 1rem;
+      border-left: 4px solid #3a8bb0;
+      padding-left: 1rem;
+      margin-bottom: 2rem;
+      background: rgba(58, 139, 176, 0.06);
+      border-radius: 0 12px 12px 0;
+      padding: 0.7rem 1.2rem;
+    }
+    .drop-zone {
+      border: 2px dashed #b6d2e2;
+      border-radius: 2rem;
+      padding: 2.8rem 1.5rem;
+      text-align: center;
+      background: #f2faff;
+      transition: 0.25s;
+      cursor: pointer;
+      margin-bottom: 1.8rem;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #2a7a9e;
+      background: #e1f0fa;
+      box-shadow: inset 0 2px 8px rgba(0,60,100,0.08);
+    }
+    .drop-zone i {
+      font-size: 2.8rem;
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #2c7b9e;
+    }
+    .drop-zone p {
+      margin: 0.5rem 0;
+      color: #1d4c64;
+      font-weight: 500;
+    }
+    .drop-zone .hint {
+      font-size: 0.9rem;
+      color: #4a6f84;
+      background: #dcecf7;
+      display: inline-block;
+      padding: 0.2rem 1.2rem;
+      border-radius: 40px;
+      margin-top: 0.5rem;
+    }
+    #fileInput {
+      display: none;
+    }
+    .file-status {
+      background: #ffffffcc;
+      backdrop-filter: blur(2px);
+      padding: 0.8rem 1.2rem;
+      border-radius: 60px;
+      border: 1px solid #c7dde9;
+      margin-bottom: 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+    }
+    .file-status span {
+      font-weight: 500;
+      color: #0f3f57;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .badge {
+      background: #1c6b89;
+      color: white;
+      border-radius: 50px;
+      padding: 0.1rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      margin: 1.8rem 0 0.8rem;
+    }
+    .btn {
+      border: none;
+      background: white;
+      padding: 0.75rem 1.8rem;
+      border-radius: 60px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      box-shadow: 0 2px 8px rgba(0, 40, 60, 0.08);
+      transition: 0.2s;
+      cursor: pointer;
+      border: 1px solid transparent;
+      color: #0b3b52;
+    }
+    .btn-primary {
+      background: #0b3b52;
+      color: white;
+      box-shadow: 0 8px 18px -8px rgba(10, 60, 90, 0.4);
+    }
+    .btn-primary:hover {
+      background: #124c67;
+      transform: scale(1.02);
+      box-shadow: 0 10px 22px -8px #0b3b5280;
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      pointer-events: none;
+      filter: grayscale(0.3);
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #abc2d0;
+    }
+    .btn-outline:hover {
+      background: #d7e6f0;
+      border-color: #729bb3;
+    }
+    .btn-success {
+      background: #1b7a5e;
+      color: white;
+    }
+    .btn-success:hover {
+      background: #1f8f6f;
+    }
+    .log-area {
+      background: #0b212e;
+      border-radius: 1.4rem;
+      padding: 1rem 1.4rem;
+      margin-top: 1.8rem;
+      color: #c1dcec;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.8rem;
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid #2a4b5e;
+      box-shadow: inset 0 4px 8px rgba(0,0,0,0.3);
+    }
+    .log-area p {
+      margin: 0.2rem 0;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .log-area .log-success { color: #83d0b7; }
+    .log-area .log-info { color: #a3c9e0; }
+    .log-area .log-error { color: #f7a68b; }
+    .clear-log {
+      background: transparent;
+      border: none;
+      color: #6f9bb3;
+      float: right;
+      cursor: pointer;
+      font-size: 0.7rem;
+      text-decoration: underline dotted;
+    }
+    .footer {
+      margin-top: 1.2rem;
+      font-size: 0.75rem;
+      color: #3f6f87;
+      text-align: center;
+      border-top: 1px solid #c3dae7;
+      padding-top: 1.2rem;
+    }
+    .flex {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 550px) {
+      .card { padding: 1.8rem 1rem; }
+      h1 { font-size: 1.7rem; }
+    }
+  </style>
 </head>
 <body>
+<div class="card">
+  <h1>📦 PNG·Forge</h1>
+  <div class="subhead">
+    ⚡ Upload a ZIP with 7000+ images · all extensions become <strong>.png</strong> · download as ZIP
+  </div>
 
-<header>
-    <div class="container header-content">
-        <div class="brand">
-            <div class="brand-logo">A</div>
-            <div>
-                <h1>Aptos NFT Explorer</h1>
-                <div class="subtitle">7000+ NFTs • download images as 1.png 2.png …</div>
-            </div>
-        </div>
-        <div class="badge"><span class="badge-dot"></span>Aptos Mainnet</div>
+  <!-- drop zone -->
+  <div class="drop-zone" id="dropZone">
+    <div>📁</div>
+    <p><strong>Drop your ZIP file here</strong> or click to browse</p>
+    <div class="hint">Supports .zip · 7000+ images</div>
+    <input type="file" id="fileInput" accept=".zip">
+  </div>
+
+  <!-- file status -->
+  <div class="file-status" id="fileStatus">
+    <span id="fileNameDisplay">📎 No ZIP selected</span>
+    <span class="badge" id="fileCountBadge">0 images</span>
+  </div>
+
+  <!-- actions -->
+  <div class="action-bar">
+    <div class="flex">
+      <button class="btn btn-primary" id="convertBtn" disabled>⚡ Convert &amp; download</button>
+      <button class="btn btn-outline" id="clearBtn">✕ Clear</button>
     </div>
-</header>
+    <button class="btn btn-outline" id="sampleBtn" style="font-size:0.85rem;">📄 generate sample ZIP</button>
+  </div>
 
-<main class="container">
-
-    <div class="stats">
-        <div class="stat-card"><div class="stat-label">Collection</div><div class="stat-value" id="collectionName">Loading...</div></div>
-        <div class="stat-card"><div class="stat-label">Total NFTs</div><div class="stat-value" id="totalNfts">--</div></div>
-        <div class="stat-card"><div class="stat-label">Loaded</div><div class="stat-value" id="loadedNfts">0</div></div>
-    </div>
-
-    <div class="download-bar">
-        <div>
-            <strong style="font-size:0.9rem;">📦 Download all images</strong>
-            <div style="font-size:0.7rem; color:#9ca3af;" id="dlStatus">Waiting for NFTs to load...</div>
-        </div>
-        <button id="downloadAllBtn" class="btn-download" disabled>⬇ Download Images (.zip)</button>
-    </div>
-
-    <div class="status-container">
-        <div class="status-left">
-            <div class="spinner" id="spinner"></div>
-            <div>
-                <div id="statusState" style="font-weight:700; font-size:0.9rem;">Initializing</div>
-                <div id="statusText" style="font-size:0.75rem; color:#9ca3af;">Fetching NFT list...</div>
-            </div>
-        </div>
-        <div id="statusCount" style="font-family:'JetBrains Mono',monospace; font-size:0.85rem;">0 / 0</div>
-    </div>
-    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-
-    <div class="gallery" id="gallery"></div>
-
-    <div class="load-more" id="loadMoreWrap" style="display:none;">
-        <button id="loadMoreBtn" class="btn-primary">Load more</button>
-    </div>
-
-</main>
-
-<!-- Modal -->
-<div class="modal-overlay" id="modal">
-    <div class="modal-box">
-        <button class="modal-close" id="modalClose">&times;</button>
-        <h2 id="modalTitle">NFT</h2>
-        <div id="modalBody" style="font-size:0.85rem; color:#9ca3af; margin-top:0.8rem;"></div>
-    </div>
+  <!-- log console -->
+  <div class="log-area" id="logArea">
+    <button class="clear-log" id="clearLogBtn">clear log</button>
+    <p>📋 ready · upload a ZIP archive</p>
+  </div>
+  <div class="footer">
+    all images keep original numeric basename · extension forced to .png
+  </div>
 </div>
 
-<footer><div class="container">Aptos NFT Explorer • all images downloadable as 1.png, 2.png …</div></footer>
-
 <script>
-    // ---- CONFIG ----
-    const COLLECTION = "0xef50cde1a5ffaea0cd0671a0f17de69ad6172eaaa673c8136d0a8e319ca9e946";
-    const PAGE_SIZE = 40;
+  (function() {
+    // ---------- DOM refs ----------
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    const fileCountBadge = document.getElementById('fileCountBadge');
+    const convertBtn = document.getElementById('convertBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const sampleBtn = document.getElementById('sampleBtn');
+    const logArea = document.getElementById('logArea');
+    const clearLogBtn = document.getElementById('clearLogBtn');
 
-    const IPFS_GATEWAYS = [
-        "https://ipfs.io/ipfs/",
-        "https://gateway.pinata.cloud/ipfs/",
-        "https://cloudflare-ipfs.com/ipfs/"
-    ];
-    const ARWEAVE = "https://arweave.net/";
+    // state
+    let currentZipFile = null;            // File object (original zip)
+    let currentZipEntries = [];           // array of { name, data (Uint8Array) } after unzip
 
-    // ---- STATE ----
-    let allNFTs = [];                // full array of { indexNum, name, image, id, uri }
-    let displayedNFTs = [];
-    let renderedCount = 0;
-    let isLoading = false;
-    let totalFetched = 0;
-    let isComplete = false;
-
-    // ---- DOM refs ----
-    const $ = id => document.getElementById(id);
-    const gallery = $('gallery');
-    const loadMoreWrap = $('loadMoreWrap');
-    const loadMoreBtn = $('loadMoreBtn');
-    const downloadBtn = $('downloadAllBtn');
-    const dlStatus = $('dlStatus');
-    const statusState = $('statusState');
-    const statusText = $('statusText');
-    const statusCount = $('statusCount');
-    const progressFill = $('progressFill');
-    const spinner = $('spinner');
-    const collectionName = $('collectionName');
-    const totalNfts = $('totalNfts');
-    const loadedNfts = $('loadedNfts');
-
-    // ---- helpers ----
-    function resolve(uri) {
-        if (!uri) return '';
-        uri = uri.trim();
-        if (uri.startsWith('ipfs://')) return IPFS_GATEWAYS[0] + uri.slice(7);
-        if (uri.startsWith('ar://')) return ARWEAVE + uri.slice(4);
-        return uri;
+    // ---------- helpers ----------
+    function log(msg, type = 'info') {
+      const p = document.createElement('p');
+      p.textContent = msg;
+      if (type === 'success') p.className = 'log-success';
+      else if (type === 'error') p.className = 'log-error';
+      else p.className = 'log-info';
+      logArea.appendChild(p);
+      logArea.scrollTop = logArea.scrollHeight;
     }
 
-    async function fetchJSON(url, opts = {}) {
-        const res = await fetch(url, opts);
-        if (!res.ok) throw new Error(res.status);
-        return res.json();
+    function clearLog() {
+      logArea.innerHTML = '';
+      // re-add clear button and initial hint
+      const clearBtnLog = document.createElement('button');
+      clearBtnLog.className = 'clear-log';
+      clearBtnLog.id = 'clearLogBtn';
+      clearBtnLog.textContent = 'clear log';
+      logArea.appendChild(clearBtnLog);
+      const p = document.createElement('p');
+      p.textContent = '📋 log cleared';
+      p.className = 'log-info';
+      logArea.appendChild(p);
+      // re-bind clear log
+      document.getElementById('clearLogBtn')?.addEventListener('click', clearLog);
     }
 
-    function updateStatus(label, text, current, total) {
-        statusState.textContent = label;
-        statusText.textContent = text;
-        statusCount.textContent = `${current} / ${total}`;
-        progressFill.style.width = total > 0 ? `${(current / total) * 100}%` : '0%';
+    // update UI status
+    function updateStatus(file) {
+      if (file) {
+        fileNameDisplay.innerHTML = `📎 ${file.name}`;
+        const count = currentZipEntries.length;
+        fileCountBadge.textContent = count > 0 ? `${count} images` : '0 images';
+        convertBtn.disabled = (count === 0);
+      } else {
+        fileNameDisplay.innerHTML = '📎 No ZIP selected';
+        fileCountBadge.textContent = '0 images';
+        convertBtn.disabled = true;
+        currentZipEntries = [];
+      }
     }
 
-    // ---- fetch all tokens (pagination) ----
-    async function fetchAllTokens(address) {
-        let all = [];
-        let offset = 0;
-        const limit = 100;
-        let hasMore = true;
-        let fail = 0;
+    // ---------- core: process zip file ----------
+    function processZipFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const arrayBuffer = e.target.result;
+            const zip = await JSZip.loadAsync(arrayBuffer);
+            const entries = [];
+            let imageCount = 0;
 
-        while (hasMore) {
-            try {
-                const query = {
-                    query: `
-                        query GetTokens($addr: String!, $limit: Int!, $offset: Int!) {
-                            current_token_datas_v2(
-                                where: { collection_id: { _eq: $addr } }
-                                limit: $limit
-                                offset: $offset
-                                order_by: { token_name: asc }
-                            ) {
-                                token_data_id
-                                token_name
-                                token_uri
-                                description
-                                current_collection { collection_name }
-                            }
-                        }
-                    `,
-                    variables: { addr: address, limit, offset }
-                };
-                const res = await fetchJSON('https://indexer.mainnet.aptoslabs.com/v1/graphql', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(query)
-                });
-                const tokens = res?.data?.current_token_datas_v2 || [];
-                if (tokens.length === 0) { hasMore = false; break; }
+            // collect all file entries (skip folders)
+            for (const [relPath, zipEntry] of Object.entries(zip.files)) {
+              if (zipEntry.dir) continue;
+              // get file extension
+              const ext = relPath.split('.').pop()?.toLowerCase() || '';
+              // consider images: common extensions (including jpg, jpeg, png, gif, bmp, webp, tiff, ico, etc)
+              // but we will convert ANY file to .png (keep numeric basename)
+              // However we only want to keep images? The spec says "7000 pictures" – we convert all files
+              // that are likely images. But to be safe, we accept any file, but we check if it's an image.
+              // For pure conversion we convert every file in zip, but only if it's an image? The description:
+              // "সব গুলো পিকচার যেমন 1.jpg বা যেকোনো একটেনশন থাকুক ... সব গুলো সংখ্যা সেম থাকবে শুধু এক্সটেনশন টা পরিবর্তন হয়ে png"
+              // => all pictures, regardless of extension, become .png. We will convert every file that has an image signature?
+              // But to be robust, we will convert every file that has a known image extension (or if binary image).
+              // Better: we filter by "is image" via extension, but we also want to preserve numeric basename.
+              // We'll accept: jpg, jpeg, png, gif, bmp, webp, tiff, tif, ico, heic, heif, avif, svg (but svg is xml)
+              // In real use, if someone puts 7000 jpg, we convert to png. We'll filter by extension.
+              const imageExtensions = ['jpg','jpeg','png','gif','bmp','webp','tiff','tif','ico','heic','heif','avif','svg','psd','ai','eps','raw','cr2','nef','arw','dng'];
+              if (!imageExtensions.includes(ext)) {
+                // skip non-image files (like .txt, .pdf etc) – but we keep if it's an image
+                continue;
+              }
 
-                for (const t of tokens) {
-                    all.push({
-                        id: t.token_data_id || t.token_name,
-                        name: t.token_name || 'NFT',
-                        uri: t.token_uri || '',
-                        description: t.description || '',
-                        collection: t.current_collection?.collection_name || 'Aptos Collection'
-                    });
-                }
-                offset += tokens.length;
-                fail = 0;
-                totalNfts.textContent = all.length;
-                updateStatus('Discovering', `Fetched ${all.length} NFTs so far...`, all.length, all.length);
-                if (tokens.length < limit) hasMore = false;
-            } catch (e) {
-                fail++;
-                if (fail > 5) { hasMore = false; }
-                else await new Promise(r => setTimeout(r, 1200));
+              // read as Uint8Array
+              const data = await zipEntry.async('uint8array');
+              // get basename (without extension)
+              const base = relPath.substring(0, relPath.lastIndexOf('.')) || relPath;
+              // We want to keep the numeric name as is, but if basename has path, we take the last part after '/'
+              let namePart = base.includes('/') ? base.split('/').pop() : base;
+              // if namePart is empty, fallback to 'image'
+              if (!namePart) namePart = 'image';
+              // ensure it's numeric? we don't force, but we keep name.
+              // The spec says "সব গুলো সংখ্যা সেম থাকবে" meaning numbers stay same.
+              // We'll use the basename as is, but force .png
+              const newName = `${namePart}.png`;
+              entries.push({ name: newName, data: data });
+              imageCount++;
             }
-        }
-        return all;
-    }
 
-    // ---- resolve metadata (only image) ----
-    async function resolveImageOnly(token, index) {
-        let image = '';
-        let name = token.name || `NFT #${index}`;
-        let uri = token.uri || '';
-
-        if (uri) {
-            try {
-                const url = resolve(uri);
-                const json = await fetchJSON(url);
-                if (json) {
-                    if (json.name) name = json.name;
-                    const img = json.image || json.image_url || '';
-                    image = resolve(img);
-                }
-            } catch (_) {
-                // if metadata fails, try using token.uri as image
-                image = resolve(uri);
+            if (entries.length === 0) {
+              reject(new Error('No image files found in the ZIP. Please upload a ZIP containing images.'));
+              return;
             }
-        }
 
-        // if still no image, try raw uri
-        if (!image && uri) image = resolve(uri);
-
-        return {
-            indexNum: index,
-            name: name,
-            image: image,
-            id: token.id,
-            uri: uri
+            currentZipEntries = entries;
+            resolve(entries);
+          } catch (err) {
+            reject(err);
+          }
         };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsArrayBuffer(file);
+      });
     }
 
-    // ---- main ----
-    async function start() {
-        try {
-            updateStatus('Fetching', 'Connecting to Aptos...', 0, 0);
-
-            const raw = await fetchAllTokens(COLLECTION);
-            if (raw.length === 0) {
-                updateStatus('Error', 'No NFTs found', 0, 0);
-                spinner.style.display = 'none';
-                return;
-            }
-
-            // set collection name
-            if (raw[0]?.collection) collectionName.textContent = raw[0].collection;
-
-            totalNfts.textContent = raw.length;
-            updateStatus('Loading metadata', `Resolving ${raw.length} images...`, 0, raw.length);
-
-            // resolve in batches
-            const batchSize = 30;
-            for (let i = 0; i < raw.length; i += batchSize) {
-                const batch = raw.slice(i, i + batchSize);
-                const resolved = await Promise.all(batch.map((t, idx) => resolveImageOnly(t, i + idx + 1)));
-                allNFTs.push(...resolved);
-                totalFetched = allNFTs.length;
-                loadedNfts.textContent = totalFetched;
-                updateStatus('Loading', `Resolved ${totalFetched} / ${raw.length}`, totalFetched, raw.length);
-            }
-
-            // sort by indexNum
-            allNFTs.sort((a,b) => a.indexNum - b.indexNum);
-            isComplete = true;
-            updateStatus('✅ Ready', `All ${allNFTs.length} NFTs loaded`, allNFTs.length, allNFTs.length);
-            spinner.style.display = 'none';
-
-            // enable download
-            downloadBtn.disabled = false;
-            dlStatus.textContent = `All ${allNFTs.length} images ready for download`;
-            dlStatus.style.color = '#00e599';
-
-            // render first batch
-            renderedCount = 0;
-            gallery.innerHTML = '';
-            renderMore();
-
-        } catch (err) {
-            console.error(err);
-            updateStatus('Error', 'Failed to load collection', 0, 0);
-            spinner.style.display = 'none';
-        }
+    // ---------- handle file input ----------
+    async function handleFile(file) {
+      if (!file || file.type !== 'application/zip' && !file.name.toLowerCase().endsWith('.zip')) {
+        log('❌ Please select a valid .zip file', 'error');
+        return;
+      }
+      try {
+        log(`📂 Processing "${file.name}" ...`, 'info');
+        const entries = await processZipFile(file);
+        currentZipFile = file;
+        updateStatus(file);
+        log(`✅ Done! Found ${entries.length} images.`, 'success');
+      } catch (err) {
+        log(`❌ Error: ${err.message}`, 'error');
+        currentZipFile = null;
+        currentZipEntries = [];
+        updateStatus(null);
+      }
     }
 
-    // ---- render ----
-    function renderMore() {
-        const slice = allNFTs.slice(renderedCount, renderedCount + PAGE_SIZE);
-        if (slice.length === 0) {
-            loadMoreWrap.style.display = 'none';
-            return;
+    // ---------- UI events ----------
+    // click drop zone -> file input
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    // drag & drop
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        fileInput.files = e.dataTransfer.files;
+        handleFile(file);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        handleFile(file);
+      } else {
+        // reset
+        currentZipFile = null;
+        currentZipEntries = [];
+        updateStatus(null);
+      }
+      // reset input so same file can be re-uploaded
+      fileInput.value = '';
+    });
+
+    // clear button
+    clearBtn.addEventListener('click', () => {
+      currentZipFile = null;
+      currentZipEntries = [];
+      updateStatus(null);
+      log('🧹 Cleared ZIP data', 'info');
+      fileInput.value = '';
+    });
+
+    // clear log
+    clearLogBtn?.addEventListener('click', clearLog);
+    // re-bind after possible re-create (we use event delegation)
+    document.addEventListener('click', function(e) {
+      if (e.target && e.target.id === 'clearLogBtn') {
+        clearLog();
+      }
+    });
+
+    // ---------- convert & download ----------
+    convertBtn.addEventListener('click', async () => {
+      if (currentZipEntries.length === 0) {
+        log('⚠️ No images to convert. Upload a ZIP first.', 'error');
+        return;
+      }
+
+      try {
+        convertBtn.disabled = true;
+        convertBtn.textContent = '⏳ packing ...';
+        log(`🔄 Converting ${currentZipEntries.length} images to .png ...`, 'info');
+
+        const newZip = new JSZip();
+        for (const entry of currentZipEntries) {
+          // entry.name already has .png extension
+          newZip.file(entry.name, entry.data);
         }
 
-        for (const nft of slice) {
-            const card = document.createElement('div');
-            card.className = 'nft-card';
-            card.innerHTML = `
-                <img class="nft-img" src="${nft.image || ''}" alt="${nft.name}" loading="lazy" 
-                     onerror="this.style.display='none'">
-                <div class="nft-info">
-                    <div class="nft-name">${nft.name}</div>
-                    <div class="nft-footer">
-                        <span class="nft-id">#${nft.indexNum}</span>
-                        <button class="btn-dl-single" data-idx="${nft.indexNum}">⬇ PNG</button>
-                    </div>
-                </div>
-            `;
+        const blob = await newZip.generateAsync({ type: 'blob' });
+        const baseName = currentZipFile ? currentZipFile.name.replace(/\.zip$/i, '') : 'converted';
+        const downloadName = `${baseName}_png.zip`;
 
-            // modal on image click
-            const img = card.querySelector('.nft-img');
-            const nameEl = card.querySelector('.nft-name');
-            const showModal = () => {
-                $('modalTitle').textContent = nft.name;
-                $('modalBody').innerHTML = `
-                    <div style="margin-bottom:0.5rem;"><strong>Index:</strong> #${nft.indexNum}</div>
-                    <div><strong>Image URL:</strong> <span style="word-break:break-all;">${nft.image || '—'}</span></div>
-                    <div style="margin-top:0.8rem;"><strong>Raw URI:</strong> ${nft.uri || '—'}</div>
-                `;
-                $('modal').classList.add('open');
-            };
-            img.addEventListener('click', showModal);
-            nameEl.addEventListener('click', showModal);
+        saveAs(blob, downloadName);
+        log(`✅ Download started: "${downloadName}" (${currentZipEntries.length} images)`, 'success');
+      } catch (err) {
+        log(`❌ Conversion error: ${err.message}`, 'error');
+      } finally {
+        convertBtn.disabled = false;
+        convertBtn.textContent = '⚡ Convert & download';
+      }
+    });
 
-            // single download
-            const dlBtn = card.querySelector('.btn-dl-single');
-            dlBtn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                await downloadSingle(nft);
-            });
-
-            gallery.appendChild(card);
-        }
-
-        renderedCount += slice.length;
-        loadedNfts.textContent = renderedCount;
-
-        if (renderedCount < allNFTs.length) {
-            loadMoreWrap.style.display = 'flex';
-        } else {
-            loadMoreWrap.style.display = 'none';
-        }
-    }
-
-    // ---- single download ----
-    async function downloadSingle(nft) {
-        if (!nft.image) { alert('No image URL'); return; }
-        const urls = [nft.image];
-        if (nft.image.includes('ipfs/')) {
-            const hash = nft.image.split('ipfs/')[1];
-            IPFS_GATEWAYS.forEach(g => urls.push(g + hash));
-        }
-        for (const url of urls) {
-            try {
-                const res = await fetch(url, { mode: 'cors' });
-                if (res.ok) {
-                    const blob = await res.blob();
-                    saveAs(blob, `${nft.indexNum}.png`);
-                    return;
-                }
-            } catch (_) {}
-        }
-        alert('Failed to download image (CORS or unavailable)');
-    }
-
-    // ---- download all as ZIP ----
-    async function downloadAllZip() {
-        if (allNFTs.length === 0) return;
-        downloadBtn.disabled = true;
-        dlStatus.textContent = 'Downloading images in parallel...';
+    // ---------- sample ZIP generator (for demo) ----------
+    sampleBtn.addEventListener('click', async () => {
+      try {
+        sampleBtn.disabled = true;
+        sampleBtn.textContent = '⏳ generating ...';
+        log('📦 Generating sample ZIP with 50 dummy images (1.jpg ... 50.jpg) ...', 'info');
 
         const zip = new JSZip();
-        const folder = zip.folder('images');
+        // create 50 tiny jpg-like images (1x1 pixel fake jpeg) for demo
+        // minimal valid JPEG (grey 1x1)
+        const jpegBytes = new Uint8Array([
+          0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
+          0x00, 0x01, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43, 0x00, 0x08, 0x06, 0x06, 0x07, 0x06, 0x05, 0x08,
+          0x07, 0x07, 0x07, 0x09, 0x09, 0x08, 0x0A, 0x0C, 0x14, 0x0D, 0x0C, 0x0B, 0x0B, 0x0C, 0x19, 0x12,
+          0x13, 0x0F, 0x14, 0x1D, 0x1A, 0x1F, 0x1E, 0x1D, 0x1A, 0x1C, 0x1C, 0x20, 0x24, 0x2E, 0x27, 0x20,
+          0x22, 0x2C, 0x23, 0x1C, 0x1C, 0x28, 0x37, 0x29, 0x2C, 0x30, 0x31, 0x34, 0x34, 0x34, 0x1F, 0x27,
+          0x39, 0x3D, 0x38, 0x32, 0x3C, 0x2E, 0x33, 0x34, 0x32, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01,
+          0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0xFF, 0xC4, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
+          0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00, 0x00, 0xFF, 0xD9
+        ]);
 
-        const total = allNFTs.length;
-        let completed = 0;
-        const concurrency = 15;
-        let idx = 0;
-
-        async function worker() {
-            while (idx < total) {
-                const i = idx++;
-                const nft = allNFTs[i];
-                const num = nft.indexNum;
-                let success = false;
-                let blob = null;
-
-                const urls = [nft.image];
-                if (nft.image && nft.image.includes('ipfs/')) {
-                    const hash = nft.image.split('ipfs/')[1];
-                    IPFS_GATEWAYS.forEach(g => urls.push(g + hash));
-                }
-
-                for (const url of urls) {
-                    try {
-                        const res = await fetch(url, { mode: 'cors' });
-                        if (res.ok) {
-                            blob = await res.blob();
-                            success = true;
-                            break;
-                        }
-                    } catch (_) {}
-                }
-
-                if (success && blob) {
-                    folder.file(`${num}.png`, blob);
-                } else {
-                    folder.file(`${num}.txt`, `Image not available: ${nft.image || 'no url'}`);
-                }
-
-                completed++;
-                dlStatus.textContent = `Downloading images: ${completed} / ${total}`;
-            }
+        for (let i = 1; i <= 50; i++) {
+          zip.file(`${i}.jpg`, jpegBytes);
+        }
+        // also add a few with other extensions: .png, .gif, .bmp? we'll add as png dummy.
+        // add 5 extra .png dummy
+        for (let i = 51; i <= 55; i++) {
+          zip.file(`${i}.png`, jpegBytes);
         }
 
-        const workers = [];
-        for (let i = 0; i < Math.min(concurrency, total); i++) workers.push(worker());
-        await Promise.all(workers);
+        const blob = await zip.generateAsync({ type: 'blob' });
+        saveAs(blob, 'sample_images.zip');
+        log('✅ Sample ZIP downloaded (55 images). Upload it to test conversion.', 'success');
+      } catch (err) {
+        log(`❌ Sample generation error: ${err.message}`, 'error');
+      } finally {
+        sampleBtn.disabled = false;
+        sampleBtn.textContent = '📄 generate sample ZIP';
+      }
+    });
 
-        dlStatus.textContent = 'Compressing ZIP...';
-        const content = await zip.generateAsync({ type: 'blob' });
-        saveAs(content, 'aptos_nft_images.zip');
-        dlStatus.textContent = `✅ Downloaded ${total} images as 1.png, 2.png ...`;
-        downloadBtn.disabled = false;
-    }
-
-    // ---- events ----
-    loadMoreBtn.addEventListener('click', renderMore);
-    downloadBtn.addEventListener('click', downloadAllZip);
-    $('modalClose').addEventListener('click', () => $('modal').classList.remove('open'));
-    $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) $('modal').classList.remove('open'); });
-
-    // ---- start ----
-    start();
+    // init
+    updateStatus(null);
+  })();
 </script>
 </body>
 </html>
