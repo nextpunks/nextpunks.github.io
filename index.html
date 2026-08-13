@@ -3,956 +3,569 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aptos NFT Explorer & Downloader</title>
+    <title>Aptos NFT Explorer • 7000+ images</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
-    <!-- JSZip and FileSaver CDN for Zip creation & download -->
+    <!-- JSZip + FileSaver -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
-        :root {
-            --bg-primary: #0b0f17;
-            --bg-secondary: #111827;
-            --bg-card: rgba(17, 24, 39, 0.7);
-            --bg-glass: rgba(255, 255, 255, 0.03);
-            --border-glass: rgba(255, 255, 255, 0.08);
-            --border-hover: rgba(0, 229, 153, 0.4);
-            
-            --accent-primary: #00e599;
-            --accent-hover: #00b377;
-            --accent-glow: rgba(0, 229, 153, 0.15);
-            --accent-blue: #3b82f6;
-            
-            --text-primary: #f9fafb;
-            --text-secondary: #9ca3af;
-            --text-muted: #6b7280;
-            
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 20px;
-            --radius-full: 9999px;
-            
-            --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-            --shadow-glow: 0 0 20px var(--accent-glow);
-            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
+            background: #0b0f17;
+            color: #f9fafb;
             min-height: 100vh;
-            line-height: 1.5;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 15% 15%, rgba(0, 229, 153, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
+            background-image: radial-gradient(circle at 15% 15%, rgba(0,229,153,0.05) 0%, transparent 40%),
+                              radial-gradient(circle at 85% 85%, rgba(59,130,246,0.05) 0%, transparent 40%);
             background-attachment: fixed;
         }
-
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-primary); }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
-
-        .container {
-            width: 100%;
-            max-width: 1440px;
-            margin: 0 auto;
-            padding: 0 1.5rem;
-        }
-
+        ::-webkit-scrollbar { width:8px; height:8px; }
+        ::-webkit-scrollbar-track { background:#0b0f17; }
+        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:4px; }
+        .container { max-width:1440px; margin:0 auto; padding:0 1.5rem; }
+        
         header {
-            background: rgba(11, 15, 23, 0.8);
+            background: rgba(11,15,23,0.8);
             backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border-glass);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            position: sticky; top:0; z-index:100;
+            padding:0.8rem 0;
         }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .brand-title {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
+        .header-content { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; }
+        .brand { display:flex; align-items:center; gap:0.75rem; }
         .brand-logo {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-blue));
-            border-radius: var(--radius-sm);
-            display: grid;
-            place-items: center;
-            color: #000;
-            font-weight: 800;
-            font-size: 1.1rem;
+            width:34px; height:34px;
+            background: linear-gradient(135deg, #00e599, #3b82f6);
+            border-radius:8px; display:grid; place-items:center;
+            font-weight:800; color:#000;
         }
-
-        h1 {
-            font-size: 1.4rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #ffffff 30%, var(--text-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .subtitle { font-size: 0.85rem; color: var(--text-secondary); }
-
-        .header-meta {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-        }
-
+        h1 { font-size:1.3rem; font-weight:800; background:linear-gradient(135deg,#fff 30%,#9ca3af); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .subtitle { font-size:0.8rem; color:#9ca3af; }
         .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            padding: 0.35rem 0.75rem;
-            border-radius: var(--radius-full);
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-secondary);
+            display:inline-flex; align-items:center; gap:0.3rem;
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.08);
+            padding:0.25rem 0.7rem; border-radius:999px;
+            font-size:0.7rem; color:#9ca3af;
         }
+        .badge-dot { width:6px; height:6px; background:#00e599; border-radius:50%; box-shadow:0 0 8px #00e599; }
 
-        .badge-dot {
-            width: 6px;
-            height: 6px;
-            background-color: var(--accent-primary);
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--accent-primary);
+        .stats {
+            display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+            gap:0.8rem; margin:1.5rem 0;
         }
-
-        .address-box {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-glass);
-            padding: 0.35rem 0.75rem;
-            border-radius: var(--radius-full);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-        }
-
-        .btn-icon {
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 2px;
-            display: inline-flex;
-        }
-        .btn-icon:hover { color: var(--accent-primary); }
-
-        .stats-section {
-            margin: 2rem 0 1.5rem 0;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-
         .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-md);
-            padding: 1.25rem;
-            backdrop-filter: blur(8px);
+            background:rgba(17,24,39,0.6); border:1px solid rgba(255,255,255,0.06);
+            border-radius:12px; padding:1rem 1.2rem;
         }
-
-        .stat-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 0.35rem;
-        }
-
-        .stat-value { font-size: 1.5rem; font-weight: 700; }
+        .stat-label { font-size:0.65rem; text-transform:uppercase; color:#6b7280; font-weight:600; }
+        .stat-value { font-size:1.4rem; font-weight:700; }
 
         .download-bar {
-            background: var(--bg-card);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-md);
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
+            background:rgba(17,24,39,0.6); border:1px solid rgba(255,255,255,0.06);
+            border-radius:12px; padding:0.8rem 1.2rem;
+            display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+            margin-bottom:1.2rem;
         }
-
-        .download-btn-group {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
         .btn-download {
-            background: linear-gradient(135deg, var(--accent-primary), #00b377);
-            color: #000;
-            font-weight: 700;
-            font-size: 0.85rem;
-            padding: 0.65rem 1.25rem;
-            border-radius: var(--radius-full);
-            border: none;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            background:linear-gradient(135deg,#00e599,#00b377);
+            color:#000; font-weight:700; font-size:0.8rem;
+            padding:0.6rem 1.2rem; border-radius:999px; border:none; cursor:pointer;
+            display:inline-flex; align-items:center; gap:0.4rem;
+            transition:0.2s;
         }
+        .btn-download:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 4px 15px rgba(0,229,153,0.3); }
+        .btn-download:disabled { opacity:0.3; cursor:not-allowed; background:#374151; color:#9ca3af; }
 
-        .btn-download:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 229, 153, 0.3);
+        .status-container {
+            background:rgba(17,24,39,0.5); border:1px solid rgba(255,255,255,0.06);
+            border-radius:12px; padding:0.8rem 1.2rem;
+            margin-bottom:1.5rem;
+            display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
         }
-
-        .btn-download:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            background: #374151;
-            color: #9ca3af;
-        }
-
-        .controls-section {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-
-        .search-box { flex: 1; min-width: 280px; position: relative; }
-        .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
-        
-        .search-input {
-            width: 100%;
-            background: var(--bg-card);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-md);
-            padding: 0.75rem 1rem 0.75rem 2.75rem;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-            outline: none;
-        }
-        .search-input:focus { border-color: var(--accent-primary); }
-
-        .filter-toggle-btn {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-md);
-            padding: 0.75rem 1.25rem;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .filter-panel {
-            background: var(--bg-card);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-md);
-            padding: 1.25rem;
-            margin-bottom: 1.5rem;
-            display: none;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 1.25rem;
-        }
-        .filter-panel.open { display: grid; }
-
-        .status-container { margin-bottom: 1.5rem; }
-        .status-bar {
-            background: var(--bg-card);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-md);
-            padding: 1rem 1.25rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-        }
-        .status-info { display: flex; align-items: center; gap: 0.75rem; }
+        .status-left { display:flex; align-items:center; gap:0.8rem; }
         .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255,255,255,0.1);
-            border-top-color: var(--accent-primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            width:22px; height:22px;
+            border:2px solid rgba(255,255,255,0.08);
+            border-top:2px solid #00e599;
+            border-radius:50%;
+            animation: spin 0.7s linear infinite;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .progress-track { width:100%; height:3px; background:rgba(255,255,255,0.05); border-radius:2px; margin-top:0.6rem; }
+        .progress-fill { height:100%; background:linear-gradient(90deg,#00e599,#3b82f6); width:0%; transition:width 0.2s; }
 
-        .progress-track {
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 2px;
-            margin-top: 0.5rem;
-            overflow: hidden;
+        .gallery {
+            display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+            gap:1rem; margin:1.5rem 0;
         }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent-primary), var(--accent-blue));
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        @media (min-width: 640px) { .gallery-grid { grid-template-columns: repeat(3, 1fr); gap: 1.25rem; } }
-        @media (min-width: 1024px) { .gallery-grid { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; } }
-        @media (min-width: 1280px) { .gallery-grid { grid-template-columns: repeat(5, 1fr); } }
+        @media (min-width:640px) { .gallery { grid-template-columns:repeat(3,1fr); } }
+        @media (min-width:1024px) { .gallery { grid-template-columns:repeat(5,1fr); } }
 
         .nft-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-md);
-            overflow: hidden;
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            position: relative;
+            background:rgba(17,24,39,0.5); border:1px solid rgba(255,255,255,0.06);
+            border-radius:12px; overflow:hidden; transition:0.2s;
         }
-        .nft-card:hover { transform: translateY(-4px); border-color: var(--border-hover); box-shadow: var(--shadow-glow); }
-
-        .nft-image-wrapper {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            background: rgba(0, 0, 0, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            cursor: pointer;
+        .nft-card:hover { transform:translateY(-4px); border-color:rgba(0,229,153,0.3); box-shadow:0 0 20px rgba(0,229,153,0.05); }
+        .nft-img {
+            width:100%; aspect-ratio:1/1; object-fit:cover;
+            background:rgba(0,0,0,0.3); cursor:pointer;
         }
-        .nft-image { width: 100%; height: 100%; object-fit: cover; }
-
-        .nft-info { padding: 1rem; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1; }
-        .nft-name { font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
-        .nft-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 0.5rem; }
-        .nft-token-id { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent-primary); }
-
-        .btn-card-download {
-            background: rgba(0, 229, 153, 0.15);
-            border: 1px solid var(--border-hover);
-            color: var(--accent-primary);
-            padding: 0.25rem 0.65rem;
-            border-radius: var(--radius-sm);
-            font-size: 0.75rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
+        .nft-info { padding:0.6rem 0.8rem; }
+        .nft-name { font-weight:600; font-size:0.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .nft-footer { display:flex; justify-content:space-between; align-items:center; margin-top:0.3rem; }
+        .nft-id { font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:#00e599; }
+        .btn-dl-single {
+            background:rgba(0,229,153,0.12);
+            border:1px solid rgba(0,229,153,0.2);
+            color:#00e599; font-size:0.65rem; font-weight:600;
+            padding:0.15rem 0.6rem; border-radius:6px; cursor:pointer;
         }
-        .btn-card-download:hover {
-            background: var(--accent-primary);
-            color: #000;
-        }
+        .btn-dl-single:hover { background:#00e599; color:#000; }
 
-        .load-more-container { display: flex; justify-content: center; margin: 2rem 0 4rem 0; }
+        .load-more { display:flex; justify-content:center; margin:1.5rem 0 3rem; }
         .btn-primary {
-            background: linear-gradient(135deg, var(--accent-primary), #00b377);
-            color: #000;
-            font-weight: 700;
-            padding: 0.85rem 2rem;
-            border-radius: var(--radius-full);
-            border: none;
-            cursor: pointer;
+            background:linear-gradient(135deg,#00e599,#00b377);
+            color:#000; font-weight:700; padding:0.7rem 2rem; border-radius:999px; border:none; cursor:pointer;
         }
 
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px);
-            z-index: 1000; display: flex; align-items: center; justify-content: center;
-            padding: 1.5rem; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.8); backdrop-filter:blur(10px);
+            z-index:999; display:flex; align-items:center; justify-content:center;
+            opacity:0; pointer-events:none; transition:0.3s;
         }
-        .modal-overlay.open { opacity: 1; pointer-events: auto; }
-        .modal-container {
-            background: var(--bg-secondary); border: 1px solid var(--border-glass);
-            border-radius: var(--radius-lg); max-width: 900px; width: 100%; max-height: 90vh;
-            overflow-y: auto; padding: 2rem; position: relative;
+        .modal-overlay.open { opacity:1; pointer-events:auto; }
+        .modal-box {
+            background:#111827; border:1px solid rgba(255,255,255,0.08);
+            border-radius:20px; max-width:700px; width:100%; max-height:90vh;
+            padding:1.5rem; overflow-y:auto; position:relative;
         }
-        .modal-close-btn { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.1); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; }
+        .modal-close {
+            position:absolute; top:0.8rem; right:1rem;
+            background:transparent; border:none; color:#fff; font-size:1.5rem; cursor:pointer;
+        }
 
-        footer { margin-top: auto; border-top: 1px solid var(--border-glass); padding: 2rem 0; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+        footer { border-top:1px solid rgba(255,255,255,0.06); padding:1.5rem 0; text-align:center; font-size:0.75rem; color:#6b7280; margin-top:2rem; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="container header-content">
-            <div class="brand-title">
-                <div class="brand-logo">A</div>
-                <div>
-                    <h1>Aptos NFT Explorer</h1>
-                    <div class="subtitle">Explore & Download entire NFT collection</div>
-                </div>
-            </div>
-            <div class="header-meta">
-                <div class="badge"><span class="badge-dot"></span>Aptos Mainnet</div>
-                <div class="address-box">
-                    <span id="collectionAddressShort">0xef50...e946</span>
-                    <button class="btn-icon" id="copyAddressBtn" title="Copy Address">📋</button>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <main class="container">
-        <section class="stats-section">
-            <div class="stat-card">
-                <div class="stat-label">Collection Name</div>
-                <div class="stat-value" id="statCollectionName">Loading...</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Total NFTs Discovered</div>
-                <div class="stat-value" id="statTotalNFTs">--</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Loaded Metadata</div>
-                <div class="stat-value" id="statLoadedNFTs">0</div>
-            </div>
-        </section>
-
-        <!-- Download Action Panel -->
-        <div class="download-bar">
+<header>
+    <div class="container header-content">
+        <div class="brand">
+            <div class="brand-logo">A</div>
             <div>
-                <strong style="font-size: 0.9rem;">Download All Assets:</strong>
-                <div style="font-size: 0.75rem; color: var(--text-secondary);" id="downloadStatusText">
-                    Waiting for NFTs to finish loading...
-                </div>
-            </div>
-            <div class="download-btn-group">
-                <button id="downloadImagesBtn" class="btn-download" disabled>
-                    📥 Download Images (.zip)
-                </button>
-                <button id="downloadJsonBtn" class="btn-download" disabled>
-                    📥 Download Metadata (.zip)
-                </button>
+                <h1>Aptos NFT Explorer</h1>
+                <div class="subtitle">7000+ NFTs • download images as 1.png 2.png …</div>
             </div>
         </div>
+        <div class="badge"><span class="badge-dot"></span>Aptos Mainnet</div>
+    </div>
+</header>
 
-        <section class="controls-section">
-            <div class="search-box">
-                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input type="text" id="searchInput" class="search-input" placeholder="Search by name, ID or trait...">
-            </div>
-            <button id="toggleFilterBtn" class="filter-toggle-btn">
-                <span>Filter Traits</span>
-            </button>
-        </section>
+<main class="container">
 
-        <div id="filterPanel" class="filter-panel"></div>
-
-        <div id="statusContainer" class="status-container">
-            <div class="status-bar">
-                <div class="status-info">
-                    <div class="spinner" id="statusSpinner"></div>
-                    <div>
-                        <div id="statusState" style="font-weight:700; font-size:0.9rem;">Initializing...</div>
-                        <div id="statusText" style="font-size:0.8rem; color:var(--text-secondary);">Connecting to Aptos Mainnet...</div>
-                    </div>
-                </div>
-                <div id="statusCount" style="font-family:'JetBrains Mono', monospace; font-size:0.85rem;">0 / 0</div>
-            </div>
-            <div class="progress-track">
-                <div id="progressFill" class="progress-fill"></div>
-            </div>
-        </div>
-
-        <div id="galleryGrid" class="gallery-grid"></div>
-
-        <div id="loadMoreContainer" class="load-more-container" style="display:none;">
-            <button id="loadMoreBtn" class="btn-primary">Load Next Batch</button>
-        </div>
-    </main>
-
-    <!-- Modal -->
-    <div id="nftModal" class="modal-overlay">
-        <div class="modal-container">
-            <button id="modalCloseBtn" class="modal-close-btn">&times;</button>
-            <h2 id="modalNFTName">NFT Details</h2>
-            <div id="modalBodyContent" style="margin-top:1rem; font-size:0.9rem; color:var(--text-secondary);"></div>
-        </div>
+    <div class="stats">
+        <div class="stat-card"><div class="stat-label">Collection</div><div class="stat-value" id="collectionName">Loading...</div></div>
+        <div class="stat-card"><div class="stat-label">Total NFTs</div><div class="stat-value" id="totalNfts">--</div></div>
+        <div class="stat-card"><div class="stat-label">Loaded</div><div class="stat-value" id="loadedNfts">0</div></div>
     </div>
 
-    <footer>
-        <div class="container">Built for Aptos Mainnet &bull; Address: 0xef50...e946</div>
-    </footer>
+    <div class="download-bar">
+        <div>
+            <strong style="font-size:0.9rem;">📦 Download all images</strong>
+            <div style="font-size:0.7rem; color:#9ca3af;" id="dlStatus">Waiting for NFTs to load...</div>
+        </div>
+        <button id="downloadAllBtn" class="btn-download" disabled>⬇ Download Images (.zip)</button>
+    </div>
 
-    <script>
-        const ALCHEMY_API_KEY = "YOUR_ALCHEMY_API_KEY";
-        const COLLECTION_ADDRESS = "0xef50cde1a5ffaea0cd0671a0f17de69ad6172eaaa673c8136d0a8e319ca9e946";
+    <div class="status-container">
+        <div class="status-left">
+            <div class="spinner" id="spinner"></div>
+            <div>
+                <div id="statusState" style="font-weight:700; font-size:0.9rem;">Initializing</div>
+                <div id="statusText" style="font-size:0.75rem; color:#9ca3af;">Fetching NFT list...</div>
+            </div>
+        </div>
+        <div id="statusCount" style="font-family:'JetBrains Mono',monospace; font-size:0.85rem;">0 / 0</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
 
-        const IPFS_GATEWAYS = ["https://ipfs.io/ipfs/", "https://gateway.pinata.cloud/ipfs/", "https://cloudflare-ipfs.com/ipfs/"];
-        const ARWEAVE_GATEWAYS = ["https://arweave.net/"];
+    <div class="gallery" id="gallery"></div>
 
-        const state = {
-            collectionName: "Aptos Collection",
-            rawNFTs: [],
-            loadedNFTs: [],
-            filteredNFTs: [],
-            renderedCount: 0,
-            pageSize: 30,
-            traitsMap: {},
-            selectedFilters: {},
-            searchQuery: "",
-            isFullyLoaded: false
-        };
+    <div class="load-more" id="loadMoreWrap" style="display:none;">
+        <button id="loadMoreBtn" class="btn-primary">Load more</button>
+    </div>
 
-        const elements = {
-            collectionAddressShort: document.getElementById('collectionAddressShort'),
-            copyAddressBtn: document.getElementById('copyAddressBtn'),
-            statCollectionName: document.getElementById('statCollectionName'),
-            statTotalNFTs: document.getElementById('statTotalNFTs'),
-            statLoadedNFTs: document.getElementById('statLoadedNFTs'),
-            searchInput: document.getElementById('searchInput'),
-            toggleFilterBtn: document.getElementById('toggleFilterBtn'),
-            filterPanel: document.getElementById('filterPanel'),
-            statusContainer: document.getElementById('statusContainer'),
-            statusState: document.getElementById('statusState'),
-            statusText: document.getElementById('statusText'),
-            statusCount: document.getElementById('statusCount'),
-            statusSpinner: document.getElementById('statusSpinner'),
-            progressFill: document.getElementById('progressFill'),
-            galleryGrid: document.getElementById('galleryGrid'),
-            loadMoreContainer: document.getElementById('loadMoreContainer'),
-            loadMoreBtn: document.getElementById('loadMoreBtn'),
-            downloadImagesBtn: document.getElementById('downloadImagesBtn'),
-            downloadJsonBtn: document.getElementById('downloadJsonBtn'),
-            downloadStatusText: document.getElementById('downloadStatusText'),
-            nftModal: document.getElementById('nftModal'),
-            modalCloseBtn: document.getElementById('modalCloseBtn'),
-            modalNFTName: document.getElementById('modalNFTName'),
-            modalBodyContent: document.getElementById('modalBodyContent')
-        };
+</main>
 
-        window.addEventListener('DOMContentLoaded', () => {
-            setupHandlers();
-            startExplorer();
-        });
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+    <div class="modal-box">
+        <button class="modal-close" id="modalClose">&times;</button>
+        <h2 id="modalTitle">NFT</h2>
+        <div id="modalBody" style="font-size:0.85rem; color:#9ca3af; margin-top:0.8rem;"></div>
+    </div>
+</div>
 
-        function setupHandlers() {
-            elements.copyAddressBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(COLLECTION_ADDRESS);
-                alert("Address copied!");
-            });
+<footer><div class="container">Aptos NFT Explorer • all images downloadable as 1.png, 2.png …</div></footer>
 
-            elements.toggleFilterBtn.addEventListener('click', () => {
-                elements.filterPanel.classList.toggle('open');
-            });
+<script>
+    // ---- CONFIG ----
+    const COLLECTION = "0xef50cde1a5ffaea0cd0671a0f17de69ad6172eaaa673c8136d0a8e319ca9e946";
+    const PAGE_SIZE = 40;
 
-            elements.searchInput.addEventListener('input', (e) => {
-                state.searchQuery = e.target.value.toLowerCase().trim();
-                applySearchAndFilters();
-            });
+    const IPFS_GATEWAYS = [
+        "https://ipfs.io/ipfs/",
+        "https://gateway.pinata.cloud/ipfs/",
+        "https://cloudflare-ipfs.com/ipfs/"
+    ];
+    const ARWEAVE = "https://arweave.net/";
 
-            elements.loadMoreBtn.addEventListener('click', renderNextBatch);
-            elements.modalCloseBtn.addEventListener('click', () => elements.nftModal.classList.remove('open'));
+    // ---- STATE ----
+    let allNFTs = [];                // full array of { indexNum, name, image, id, uri }
+    let displayedNFTs = [];
+    let renderedCount = 0;
+    let isLoading = false;
+    let totalFetched = 0;
+    let isComplete = false;
 
-            elements.downloadImagesBtn.addEventListener('click', downloadImagesZip);
-            elements.downloadJsonBtn.addEventListener('click', downloadMetadataZip);
-        }
+    // ---- DOM refs ----
+    const $ = id => document.getElementById(id);
+    const gallery = $('gallery');
+    const loadMoreWrap = $('loadMoreWrap');
+    const loadMoreBtn = $('loadMoreBtn');
+    const downloadBtn = $('downloadAllBtn');
+    const dlStatus = $('dlStatus');
+    const statusState = $('statusState');
+    const statusText = $('statusText');
+    const statusCount = $('statusCount');
+    const progressFill = $('progressFill');
+    const spinner = $('spinner');
+    const collectionName = $('collectionName');
+    const totalNfts = $('totalNfts');
+    const loadedNfts = $('loadedNfts');
 
-        function resolveURI(uri) {
-            if (!uri) return '';
-            uri = uri.trim();
-            if (uri.startsWith('ipfs://')) return `${IPFS_GATEWAYS[0]}${uri.replace('ipfs://', '')}`;
-            if (uri.startsWith('ar://')) return `${ARWEAVE_GATEWAYS[0]}${uri.replace('ar://', '')}`;
-            return uri;
-        }
+    // ---- helpers ----
+    function resolve(uri) {
+        if (!uri) return '';
+        uri = uri.trim();
+        if (uri.startsWith('ipfs://')) return IPFS_GATEWAYS[0] + uri.slice(7);
+        if (uri.startsWith('ar://')) return ARWEAVE + uri.slice(4);
+        return uri;
+    }
 
-        async function fetchJSON(url, options = {}) {
-            const res = await fetch(url, options);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return await res.json();
-        }
+    async function fetchJSON(url, opts = {}) {
+        const res = await fetch(url, opts);
+        if (!res.ok) throw new Error(res.status);
+        return res.json();
+    }
 
-        async function startExplorer() {
+    function updateStatus(label, text, current, total) {
+        statusState.textContent = label;
+        statusText.textContent = text;
+        statusCount.textContent = `${current} / ${total}`;
+        progressFill.style.width = total > 0 ? `${(current / total) * 100}%` : '0%';
+    }
+
+    // ---- fetch all tokens (pagination) ----
+    async function fetchAllTokens(address) {
+        let all = [];
+        let offset = 0;
+        const limit = 100;
+        let hasMore = true;
+        let fail = 0;
+
+        while (hasMore) {
             try {
-                updateStatus("Discovering", "Fetching full NFT list from Aptos Mainnet...", 0, 0);
-
-                const allTokens = await fetchAllCollectionTokens(COLLECTION_ADDRESS);
-                state.rawNFTs = allTokens;
-                elements.statTotalNFTs.textContent = allTokens.length.toLocaleString();
-
-                if (allTokens.length === 0) {
-                    updateStatus("Complete", "No NFTs found", 0, 0);
-                    elements.statusSpinner.style.display = 'none';
-                    return;
-                }
-
-                elements.statCollectionName.textContent = allTokens[0].collection || "Aptos Collection";
-                await processAllNFTsProgressively(allTokens);
-
-            } catch (err) {
-                console.error(err);
-                updateStatus("Error", "Failed to fetch collection data", 0, 0);
-                elements.statusSpinner.style.display = 'none';
-            }
-        }
-
-        // ৭,০০০ টি NFT-ই যাতে কোনো ঝামেলা ছাড়া ক্রমানুসারে লোড হয়
-        async function fetchAllCollectionTokens(address) {
-            let allTokens = [];
-            let offset = 0;
-            const limit = 100;
-            let hasMore = true;
-            let consecutiveFailures = 0;
-
-            while (hasMore) {
-                try {
-                    const query = {
-                        query: `
-                            query GetCollectionTokens($addr: String!, $limit: Int!, $offset: Int!) {
-                                current_token_datas_v2(
-                                    where: { collection_id: { _eq: $addr } }
-                                    limit: $limit
-                                    offset: $offset
-                                    order_by: { token_name: asc }
-                                ) {
-                                    token_data_id
-                                    token_name
-                                    token_uri
-                                    description
-                                    current_collection { collection_name creator_address }
-                                }
+                const query = {
+                    query: `
+                        query GetTokens($addr: String!, $limit: Int!, $offset: Int!) {
+                            current_token_datas_v2(
+                                where: { collection_id: { _eq: $addr } }
+                                limit: $limit
+                                offset: $offset
+                                order_by: { token_name: asc }
+                            ) {
+                                token_data_id
+                                token_name
+                                token_uri
+                                description
+                                current_collection { collection_name }
                             }
-                        `,
-                        variables: { addr: address, limit: limit, offset: offset }
-                    };
-
-                    const res = await fetchJSON(`https://indexer.mainnet.aptoslabs.com/v1/graphql`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(query)
-                    });
-
-                    const tokens = res?.data?.current_token_datas_v2 || [];
-                    if (tokens.length > 0) {
-                        tokens.forEach(t => {
-                            allTokens.push({
-                                id: t.token_data_id || t.token_name,
-                                name: t.token_name,
-                                uri: t.token_uri,
-                                description: t.description,
-                                collection: t.current_collection?.collection_name || "Aptos Collection"
-                            });
-                        });
-                        offset += tokens.length;
-                        consecutiveFailures = 0;
-                        elements.statTotalNFTs.textContent = allTokens.length.toString();
-                        
-                        updateStatus("Discovering", `Discovered ${allTokens.length} NFTs so far...`, allTokens.length, allTokens.length);
-
-                        if (tokens.length < limit) hasMore = false;
-                    } else {
-                        hasMore = false;
-                    }
-                } catch (e) {
-                    consecutiveFailures++;
-                    if (consecutiveFailures > 5) {
-                        hasMore = false; // নেটওয়ার্ক বেশি সমস্যায় পড়লে থামবে
-                    } else {
-                        await new Promise(r => setTimeout(r, 1000)); // ১ সেকেন্ড অপেক্ষা করে আবার রিট্রাই করবে
-                    }
-                }
-            }
-            return allTokens;
-        }
-
-        async function processAllNFTsProgressively(rawTokens) {
-            const total = rawTokens.length;
-            const batchSize = 20;
-
-            for (let i = 0; i < total; i += batchSize) {
-                const batch = rawTokens.slice(i, i + batchSize);
-                const resolvedBatch = await Promise.all(batch.map((t, idx) => resolveNFTMetadata(t, i + idx + 1)));
-
-                resolvedBatch.forEach(nft => {
-                    state.loadedNFTs.push(nft);
-                    registerTraits(nft.attributes);
-                });
-
-                const loadedCount = state.loadedNFTs.length;
-                elements.statLoadedNFTs.textContent = loadedCount.toLocaleString();
-                updateStatus("Loading Metadata", `Loaded ${loadedCount} of ${total} NFTs`, loadedCount, total);
-
-                applySearchAndFilters();
-            }
-
-            state.isFullyLoaded = true;
-            updateStatus("Complete", `Loaded all ${total} NFTs successfully!`, total, total);
-            elements.statusSpinner.style.display = 'none';
-
-            elements.downloadImagesBtn.disabled = false;
-            elements.downloadJsonBtn.disabled = false;
-            elements.downloadStatusText.textContent = "All NFTs loaded. Ready for instant download!";
-            elements.downloadStatusText.style.color = "var(--accent-primary)";
-        }
-
-        async function resolveNFTMetadata(token, indexNum) {
-            let metadata = {
-                indexNum: indexNum,
-                id: token.id,
-                name: token.name || token.id,
-                description: token.description || '',
-                image: '',
-                uri: token.uri || '',
-                collection: token.collection || 'Aptos NFT',
-                attributes: [],
-                rawJson: {}
-            };
-
-            if (token.uri) {
-                try {
-                    const resolved = resolveURI(token.uri);
-                    const json = await fetchJSON(resolved);
-                    if (json) {
-                        metadata.rawJson = json;
-                        metadata.name = json.name || metadata.name;
-                        metadata.description = json.description || metadata.description;
-                        metadata.image = resolveURI(json.image || json.image_url || '');
-                        
-                        const attrs = json.attributes || json.traits || [];
-                        if (Array.isArray(attrs)) {
-                            metadata.attributes = attrs.map(a => ({
-                                trait_type: a.trait_type || 'Trait',
-                                value: String(a.value)
-                            }));
                         }
-                    }
-                } catch (e) {
-                    metadata.image = resolveURI(token.uri);
-                }
-            }
-            return metadata;
-        }
-
-        function registerTraits(attributes) {
-            attributes.forEach(attr => {
-                if (!state.traitsMap[attr.trait_type]) {
-                    state.traitsMap[attr.trait_type] = new Set();
-                }
-                state.traitsMap[attr.trait_type].add(attr.value);
-            });
-        }
-
-        function applySearchAndFilters() {
-            state.filteredNFTs = state.loadedNFTs.filter(nft => {
-                if (state.searchQuery) {
-                    const q = state.searchQuery;
-                    const matchName = nft.name.toLowerCase().includes(q);
-                    const matchId = String(nft.id).toLowerCase().includes(q);
-                    if (!matchName && !matchId) return false;
-                }
-                return true;
-            });
-
-            state.renderedCount = 0;
-            elements.galleryGrid.innerHTML = '';
-            renderNextBatch();
-        }
-
-        function renderNextBatch() {
-            const nextBatch = state.filteredNFTs.slice(state.renderedCount, state.renderedCount + state.pageSize);
-            nextBatch.forEach(nft => {
-                const card = document.createElement('div');
-                card.className = 'nft-card';
-                card.innerHTML = `
-                    <div class="nft-image-wrapper">
-                        ${nft.image ? `<img class="nft-image" src="${nft.image}" loading="lazy"/>` : '<span>No Image</span>'}
-                    </div>
-                    <div class="nft-info">
-                        <div class="nft-name">${nft.name}</div>
-                        <div class="nft-footer">
-                            <span class="nft-token-id">#${nft.indexNum}</span>
-                            <button class="btn-card-download" title="Download PNG">📥 PNG</button>
-                        </div>
-                    </div>
-                `;
-
-                // কার্ডের ছবি ও নামের ওপর ক্লিক করলে মডেল ওপেন হবে
-                const imgWrap = card.querySelector('.nft-image-wrapper');
-                const titleWrap = card.querySelector('.nft-name');
-                const openModal = () => {
-                    elements.modalNFTName.textContent = nft.name;
-                    elements.modalBodyContent.innerHTML = `<pre style="font-size:0.75rem; color:#a7f3d0; overflow-x:auto;">${JSON.stringify(nft.rawJson, null, 2)}</pre>`;
-                    elements.nftModal.classList.add('open');
+                    `,
+                    variables: { addr: address, limit, offset }
                 };
-                imgWrap.addEventListener('click', openModal);
-                titleWrap.addEventListener('click', openModal);
-
-                // ম্যানুয়াল সিঙ্গেল কার্ড ডাউনলোড বাটন (১.png, ২.png ফরমেটে নাম হবে)
-                const dlBtn = card.querySelector('.btn-card-download');
-                dlBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    downloadSingleImage(nft);
+                const res = await fetchJSON('https://indexer.mainnet.aptoslabs.com/v1/graphql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(query)
                 });
+                const tokens = res?.data?.current_token_datas_v2 || [];
+                if (tokens.length === 0) { hasMore = false; break; }
 
-                elements.galleryGrid.appendChild(card);
-            });
+                for (const t of tokens) {
+                    all.push({
+                        id: t.token_data_id || t.token_name,
+                        name: t.token_name || 'NFT',
+                        uri: t.token_uri || '',
+                        description: t.description || '',
+                        collection: t.current_collection?.collection_name || 'Aptos Collection'
+                    });
+                }
+                offset += tokens.length;
+                fail = 0;
+                totalNfts.textContent = all.length;
+                updateStatus('Discovering', `Fetched ${all.length} NFTs so far...`, all.length, all.length);
+                if (tokens.length < limit) hasMore = false;
+            } catch (e) {
+                fail++;
+                if (fail > 5) { hasMore = false; }
+                else await new Promise(r => setTimeout(r, 1200));
+            }
+        }
+        return all;
+    }
 
-            state.renderedCount += nextBatch.length;
-            elements.loadMoreContainer.style.display = state.renderedCount < state.filteredNFTs.length ? 'flex' : 'none';
+    // ---- resolve metadata (only image) ----
+    async function resolveImageOnly(token, index) {
+        let image = '';
+        let name = token.name || `NFT #${index}`;
+        let uri = token.uri || '';
+
+        if (uri) {
+            try {
+                const url = resolve(uri);
+                const json = await fetchJSON(url);
+                if (json) {
+                    if (json.name) name = json.name;
+                    const img = json.image || json.image_url || '';
+                    image = resolve(img);
+                }
+            } catch (_) {
+                // if metadata fails, try using token.uri as image
+                image = resolve(uri);
+            }
         }
 
-        // ম্যানুয়ালি একক ইমেজ PNG হিসেবে ডাউনলোড করার ফাংশন
-        async function downloadSingleImage(nft) {
-            if (!nft.image) {
-                alert("Image URL not available!");
+        // if still no image, try raw uri
+        if (!image && uri) image = resolve(uri);
+
+        return {
+            indexNum: index,
+            name: name,
+            image: image,
+            id: token.id,
+            uri: uri
+        };
+    }
+
+    // ---- main ----
+    async function start() {
+        try {
+            updateStatus('Fetching', 'Connecting to Aptos...', 0, 0);
+
+            const raw = await fetchAllTokens(COLLECTION);
+            if (raw.length === 0) {
+                updateStatus('Error', 'No NFTs found', 0, 0);
+                spinner.style.display = 'none';
                 return;
             }
 
-            const urlsToTry = [nft.image];
-            if (nft.image.includes("ipfs/")) {
-                const ipfsHash = nft.image.split("ipfs/")[1];
-                IPFS_GATEWAYS.forEach(gw => urlsToTry.push(gw + ipfsHash));
+            // set collection name
+            if (raw[0]?.collection) collectionName.textContent = raw[0].collection;
+
+            totalNfts.textContent = raw.length;
+            updateStatus('Loading metadata', `Resolving ${raw.length} images...`, 0, raw.length);
+
+            // resolve in batches
+            const batchSize = 30;
+            for (let i = 0; i < raw.length; i += batchSize) {
+                const batch = raw.slice(i, i + batchSize);
+                const resolved = await Promise.all(batch.map((t, idx) => resolveImageOnly(t, i + idx + 1)));
+                allNFTs.push(...resolved);
+                totalFetched = allNFTs.length;
+                loadedNfts.textContent = totalFetched;
+                updateStatus('Loading', `Resolved ${totalFetched} / ${raw.length}`, totalFetched, raw.length);
             }
 
-            for (const url of urlsToTry) {
-                try {
-                    const response = await fetch(url, { mode: 'cors' });
-                    if (response.ok) {
-                        const blob = await response.blob();
-                        saveAs(blob, `${nft.indexNum}.png`);
-                        return;
-                    }
-                } catch (e) {
-                    // Try next gateway
-                }
-            }
-            alert("Failed to download image. Main source or gateways blocked CORS.");
+            // sort by indexNum
+            allNFTs.sort((a,b) => a.indexNum - b.indexNum);
+            isComplete = true;
+            updateStatus('✅ Ready', `All ${allNFTs.length} NFTs loaded`, allNFTs.length, allNFTs.length);
+            spinner.style.display = 'none';
+
+            // enable download
+            downloadBtn.disabled = false;
+            dlStatus.textContent = `All ${allNFTs.length} images ready for download`;
+            dlStatus.style.color = '#00e599';
+
+            // render first batch
+            renderedCount = 0;
+            gallery.innerHTML = '';
+            renderMore();
+
+        } catch (err) {
+            console.error(err);
+            updateStatus('Error', 'Failed to load collection', 0, 0);
+            spinner.style.display = 'none';
+        }
+    }
+
+    // ---- render ----
+    function renderMore() {
+        const slice = allNFTs.slice(renderedCount, renderedCount + PAGE_SIZE);
+        if (slice.length === 0) {
+            loadMoreWrap.style.display = 'none';
+            return;
         }
 
-        function updateStatus(label, text, current, total) {
-            elements.statusState.textContent = label;
-            elements.statusText.textContent = text;
-            elements.statusCount.textContent = `${current} / ${total}`;
-            elements.progressFill.style.width = total > 0 ? `${(current / total) * 100}%` : '0%';
-        }
+        for (const nft of slice) {
+            const card = document.createElement('div');
+            card.className = 'nft-card';
+            card.innerHTML = `
+                <img class="nft-img" src="${nft.image || ''}" alt="${nft.name}" loading="lazy" 
+                     onerror="this.style.display='none'">
+                <div class="nft-info">
+                    <div class="nft-name">${nft.name}</div>
+                    <div class="nft-footer">
+                        <span class="nft-id">#${nft.indexNum}</span>
+                        <button class="btn-dl-single" data-idx="${nft.indexNum}">⬇ PNG</button>
+                    </div>
+                </div>
+            `;
 
-        // ================= ZIP DOWNLOADER (১.png, ২.png ফরমেটে) ================= //
+            // modal on image click
+            const img = card.querySelector('.nft-img');
+            const nameEl = card.querySelector('.nft-name');
+            const showModal = () => {
+                $('modalTitle').textContent = nft.name;
+                $('modalBody').innerHTML = `
+                    <div style="margin-bottom:0.5rem;"><strong>Index:</strong> #${nft.indexNum}</div>
+                    <div><strong>Image URL:</strong> <span style="word-break:break-all;">${nft.image || '—'}</span></div>
+                    <div style="margin-top:0.8rem;"><strong>Raw URI:</strong> ${nft.uri || '—'}</div>
+                `;
+                $('modal').classList.add('open');
+            };
+            img.addEventListener('click', showModal);
+            nameEl.addEventListener('click', showModal);
 
-        async function downloadImagesZip() {
-            const zip = new JSZip();
-            const imgFolder = zip.folder("images");
-            
-            elements.downloadImagesBtn.disabled = true;
-            elements.downloadStatusText.textContent = "Super fast parallel download started...";
-
-            const total = state.loadedNFTs.length;
-            let completed = 0;
-            const concurrencyLimit = 20;
-
-            let index = 0;
-            async function worker() {
-                while (index < total) {
-                    const currentIndex = index++;
-                    const nft = state.loadedNFTs[currentIndex];
-                    const fileNum = nft.indexNum;
-
-                    if (nft.image) {
-                        let success = false;
-                        let blob = null;
-
-                        const urlsToTry = [nft.image];
-                        if (nft.image.includes("ipfs/")) {
-                            const ipfsHash = nft.image.split("ipfs/")[1];
-                            IPFS_GATEWAYS.forEach(gw => urlsToTry.push(gw + ipfsHash));
-                        }
-
-                        for (const url of urlsToTry) {
-                            try {
-                                const response = await fetch(url, { mode: 'cors' });
-                                if (response.ok) {
-                                    blob = await response.blob();
-                                    success = true;
-                                    break;
-                                }
-                            } catch (e) {
-                                // Try next gateway
-                            }
-                        }
-
-                        if (success && blob) {
-                            imgFolder.file(`${fileNum}.png`, blob);
-                        } else {
-                            imgFolder.file(`${fileNum}.txt`, "Image fetch failed, URL: " + nft.image);
-                        }
-                    }
-
-                    completed++;
-                    elements.downloadStatusText.textContent = `Downloading Images: ${completed} / ${total} completed`;
-                }
-            }
-
-            const workers = [];
-            for (let i = 0; i < Math.min(concurrencyLimit, total); i++) {
-                workers.push(worker());
-            }
-
-            await Promise.all(workers);
-
-            elements.downloadStatusText.textContent = "Compressing ZIP file, please wait...";
-            const zipContent = await zip.generateAsync({ type: "blob" });
-            saveAs(zipContent, "aptos_nft_images.zip");
-            
-            elements.downloadImagesBtn.disabled = false;
-            elements.downloadStatusText.textContent = "Images ZIP downloaded successfully!";
-        }
-
-        async function downloadMetadataZip() {
-            const zip = new JSZip();
-            const jsonFolder = zip.folder("metadata");
-
-            elements.downloadJsonBtn.disabled = true;
-            elements.downloadStatusText.textContent = "Generating Metadata ZIP...";
-
-            state.loadedNFTs.forEach((nft) => {
-                const index = nft.indexNum;
-                const jsonContent = JSON.stringify(nft.rawJson && Object.keys(nft.rawJson).length > 0 ? nft.rawJson : nft, null, 2);
-                jsonFolder.file(`${index}.json`, jsonContent);
+            // single download
+            const dlBtn = card.querySelector('.btn-dl-single');
+            dlBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await downloadSingle(nft);
             });
 
-            elements.downloadStatusText.textContent = "Compressing Metadata ZIP File...";
-            const zipContent = await zip.generateAsync({ type: "blob" });
-            saveAs(zipContent, "aptos_nft_metadata.zip");
-
-            elements.downloadJsonBtn.disabled = false;
-            elements.downloadStatusText.textContent = "Metadata ZIP downloaded successfully!";
+            gallery.appendChild(card);
         }
-    </script>
+
+        renderedCount += slice.length;
+        loadedNfts.textContent = renderedCount;
+
+        if (renderedCount < allNFTs.length) {
+            loadMoreWrap.style.display = 'flex';
+        } else {
+            loadMoreWrap.style.display = 'none';
+        }
+    }
+
+    // ---- single download ----
+    async function downloadSingle(nft) {
+        if (!nft.image) { alert('No image URL'); return; }
+        const urls = [nft.image];
+        if (nft.image.includes('ipfs/')) {
+            const hash = nft.image.split('ipfs/')[1];
+            IPFS_GATEWAYS.forEach(g => urls.push(g + hash));
+        }
+        for (const url of urls) {
+            try {
+                const res = await fetch(url, { mode: 'cors' });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    saveAs(blob, `${nft.indexNum}.png`);
+                    return;
+                }
+            } catch (_) {}
+        }
+        alert('Failed to download image (CORS or unavailable)');
+    }
+
+    // ---- download all as ZIP ----
+    async function downloadAllZip() {
+        if (allNFTs.length === 0) return;
+        downloadBtn.disabled = true;
+        dlStatus.textContent = 'Downloading images in parallel...';
+
+        const zip = new JSZip();
+        const folder = zip.folder('images');
+
+        const total = allNFTs.length;
+        let completed = 0;
+        const concurrency = 15;
+        let idx = 0;
+
+        async function worker() {
+            while (idx < total) {
+                const i = idx++;
+                const nft = allNFTs[i];
+                const num = nft.indexNum;
+                let success = false;
+                let blob = null;
+
+                const urls = [nft.image];
+                if (nft.image && nft.image.includes('ipfs/')) {
+                    const hash = nft.image.split('ipfs/')[1];
+                    IPFS_GATEWAYS.forEach(g => urls.push(g + hash));
+                }
+
+                for (const url of urls) {
+                    try {
+                        const res = await fetch(url, { mode: 'cors' });
+                        if (res.ok) {
+                            blob = await res.blob();
+                            success = true;
+                            break;
+                        }
+                    } catch (_) {}
+                }
+
+                if (success && blob) {
+                    folder.file(`${num}.png`, blob);
+                } else {
+                    folder.file(`${num}.txt`, `Image not available: ${nft.image || 'no url'}`);
+                }
+
+                completed++;
+                dlStatus.textContent = `Downloading images: ${completed} / ${total}`;
+            }
+        }
+
+        const workers = [];
+        for (let i = 0; i < Math.min(concurrency, total); i++) workers.push(worker());
+        await Promise.all(workers);
+
+        dlStatus.textContent = 'Compressing ZIP...';
+        const content = await zip.generateAsync({ type: 'blob' });
+        saveAs(content, 'aptos_nft_images.zip');
+        dlStatus.textContent = `✅ Downloaded ${total} images as 1.png, 2.png ...`;
+        downloadBtn.disabled = false;
+    }
+
+    // ---- events ----
+    loadMoreBtn.addEventListener('click', renderMore);
+    downloadBtn.addEventListener('click', downloadAllZip);
+    $('modalClose').addEventListener('click', () => $('modal').classList.remove('open'));
+    $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) $('modal').classList.remove('open'); });
+
+    // ---- start ----
+    start();
+</script>
 </body>
 </html>
